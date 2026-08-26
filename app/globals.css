@@ -1290,9 +1290,24 @@ a {
   }
   .hamb {
     display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
   }
   .topbar {
     padding: 0 12px;
+  }
+  /* Normalize control heights so the row reads as one aligned toolbar —
+     .btn.primary is 38px and .avatar is 30px by default, both fine on
+     desktop next to the search bar, but jarring stacked against the
+     36px icon buttons once the header shrinks to just these controls. */
+  .topbar .btn.primary {
+    height: 36px;
+  }
+  .topbar .avatar {
+    width: 36px;
+    height: 36px;
   }
   .breadcrumb {
     display: none;
