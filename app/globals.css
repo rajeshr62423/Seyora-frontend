@@ -1398,6 +1398,13 @@ a {
   .topbar {
     gap: 7px;
   }
+  /* .search normally supplies margin-left: auto, splitting the header
+     into a left side (hamb/breadcrumb) and right side (actions). Once
+     it's hidden below, nothing pushes the right side over, so the
+     first visible action after it takes over that job. */
+  .topbar .btn.primary {
+    margin-left: auto;
+  }
   .topbar .icon-btn.help {
     display: none;
   }
