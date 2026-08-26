@@ -48,7 +48,7 @@ const LIGHT_TOKENS = {
 };
 
 const COMPONENT_TOKENS = (bg: string, elevatedBg: string) => ({
-  Button: { primaryColor: "#052E1B", colorPrimaryHover: "#34D399" },
+  Button: { primaryColor: "#FFFFFF", colorPrimaryHover: "#34D399" },
   Modal: { contentBg: elevatedBg, headerBg: elevatedBg, titleColor: undefined },
   Select: { colorBgContainer: bg, optionSelectedBg: "rgba(16,185,129,.14)", controlHeight: 38 },
   Input: { colorBgContainer: bg, controlHeight: 38 },
