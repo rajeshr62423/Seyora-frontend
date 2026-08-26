@@ -392,7 +392,7 @@ a {
   height: 19px;
   border-radius: 99px;
   background: var(--primary);
-  color: #052e1b;
+  color: #ffffff;
   font-size: 10px;
   display: grid;
   place-items: center;
@@ -560,7 +560,7 @@ a {
 .btn.primary {
   background: var(--primary);
   border-color: var(--primary);
-  color: #052e1b;
+  color: #ffffff;
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.18);
 }
 .btn.primary:hover {
@@ -1614,7 +1614,7 @@ a {
   height: 22px;
   border-radius: 50%;
   background: var(--primary);
-  color: #052e1b;
+  color: #ffffff;
 }
 .cal-task {
   font-size: 9px;
