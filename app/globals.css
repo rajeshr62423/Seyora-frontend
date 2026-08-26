@@ -59,8 +59,25 @@
 :root[data-theme="light"] .card:hover {
   border-color: rgba(5, 150, 105, 0.28);
 }
-:root[data-theme="light"] .nav-item.active {
+:root[data-theme="light"] .nav-item.active,
+:root[data-theme="light"] .settings-link.active {
   background: linear-gradient(90deg, rgba(5, 150, 105, 0.12), rgba(5, 150, 105, 0.04));
+  color: #047857;
+}
+/* Every other spot using the dark-theme's pale mint (#a7f3d0) as "active"
+   text on a low-opacity emerald tint — illegible once that tint sits on a
+   light surface instead of a dark one, so light theme swaps in a readable
+   dark emerald instead. Backgrounds are left as-is; only the text needs it. */
+:root[data-theme="light"] .btn.active,
+:root[data-theme="light"] .view-switch button.active,
+:root[data-theme="light"] .tab.active,
+:root[data-theme="light"] .cal-task,
+:root[data-theme="light"] .notification-avatar,
+:root[data-theme="light"] .notif-stat-icon,
+:root[data-theme="light"] .team-hero .hero-icon,
+:root[data-theme="light"] .art-card.active strong,
+:root[data-theme="light"] .art-card.active .tiny,
+:root[data-theme="light"] .channel-row.active {
   color: #047857;
 }
 :root[data-theme="light"] .badge-progressing {
