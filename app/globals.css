@@ -2156,3 +2156,274 @@ a {
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
 
+/* ===== Seyora page loader (navigation/initial-load overlay) ===== */
+/* Uses its own --sl-* palette (not the app's --bg/--card variables)
+   scoped to this component, with a light-theme override block below,
+   so the two token sets can't leak into each other. */
+.seyora-loader {
+  --sl-bg: #101412;
+  --sl-bg2: #131917;
+  --sl-surface: #171c19;
+  --sl-card: #1d2521;
+  --sl-elevated: #222b27;
+  --sl-border: #303a35;
+  --sl-primary: #10b981;
+  --sl-primary-hover: #34d399;
+  --sl-secondary: #14b8a6;
+  --sl-text: #e5e7eb;
+  --sl-muted: #9ca3af;
+  --sl-info: #5eead4;
+
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--sl-bg);
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 350ms ease, transform 350ms ease;
+}
+.seyora-loader[data-phase="exiting"],
+.seyora-loader[data-phase="idle"] {
+  opacity: 0;
+  transform: scale(0.98);
+  pointer-events: none;
+}
+:root[data-theme="light"] .seyora-loader {
+  --sl-bg: #f3f6f4;
+  --sl-bg2: #eef2f0;
+  --sl-surface: #f8faf9;
+  --sl-card: #ffffff;
+  --sl-elevated: #ffffff;
+  --sl-border: #d1d9d5;
+  --sl-primary: #059669;
+  --sl-primary-hover: #10b981;
+  --sl-secondary: #0d9488;
+  --sl-text: #1a211e;
+  --sl-muted: #66736c;
+  --sl-info: #0e7490;
+}
+
+/* --- decorative background --- */
+.seyora-loader-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.seyora-loader-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 1px solid rgba(16, 185, 129, 0.14);
+  transform: translate(-50%, -50%);
+}
+.seyora-loader-ring-outer {
+  width: clamp(320px, 46vw, 620px);
+  height: clamp(320px, 46vw, 620px);
+  animation: seyora-ring-spin 40s linear infinite;
+}
+.seyora-loader-ring-inner {
+  width: clamp(200px, 30vw, 400px);
+  height: clamp(200px, 30vw, 400px);
+  border-color: rgba(20, 184, 166, 0.16);
+  animation: seyora-ring-spin 28s linear infinite reverse;
+}
+.seyora-loader-dashes {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 1px dashed rgba(94, 234, 212, 0.1);
+  transform: translate(-50%, -50%);
+}
+.seyora-loader-dashes-1 {
+  width: clamp(260px, 38vw, 500px);
+  height: clamp(260px, 38vw, 500px);
+  animation: seyora-ring-spin 55s linear infinite;
+}
+.seyora-loader-dashes-2 {
+  width: clamp(420px, 56vw, 720px);
+  height: clamp(420px, 56vw, 720px);
+  animation: seyora-ring-spin 70s linear infinite reverse;
+}
+.seyora-loader-node {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sl-primary);
+  box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.5);
+  animation: seyora-node-glow 3.2s ease-in-out infinite;
+}
+.seyora-loader-node-1 {
+  top: 28%;
+  left: 62%;
+  animation-delay: 0s;
+}
+.seyora-loader-node-2 {
+  top: 68%;
+  left: 32%;
+  background: var(--sl-secondary);
+  box-shadow: 0 0 12px 2px rgba(20, 184, 166, 0.5);
+  animation-delay: 0.8s;
+}
+.seyora-loader-node-3 {
+  top: 74%;
+  left: 68%;
+  animation-delay: 1.6s;
+}
+.seyora-loader-node-4 {
+  top: 24%;
+  left: 34%;
+  background: var(--sl-info);
+  box-shadow: 0 0 12px 2px rgba(94, 234, 212, 0.5);
+  animation-delay: 2.4s;
+}
+
+/* --- content --- */
+.seyora-loader-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 360px;
+  padding: 0 24px;
+  text-align: center;
+}
+.seyora-loader-logo {
+  margin-bottom: 4px;
+  animation: seyora-logo-pulse 2.6s ease-in-out infinite;
+}
+.seyora-loader-logo img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.seyora-loader-logo-lockup {
+  width: clamp(180px, 30vw, 260px);
+}
+.seyora-loader-logo-icon {
+  width: clamp(56px, 12vw, 88px);
+}
+.seyora-loader-wordmark {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(22px, 4vw, 28px);
+  letter-spacing: 0.01em;
+  color: var(--sl-text);
+}
+.seyora-loader-wordmark span {
+  color: var(--sl-primary);
+}
+.seyora-loader-tagline {
+  font-size: 13px;
+  color: var(--sl-muted);
+  margin-bottom: 22px;
+}
+.seyora-loader-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--sl-muted);
+  margin-bottom: 16px;
+}
+.seyora-loader-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid var(--sl-border);
+  border-top-color: var(--sl-primary);
+  animation: seyora-spin 0.85s linear infinite;
+}
+.seyora-loader-progress {
+  width: 100%;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.seyora-loader-progress-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--sl-border);
+  overflow: hidden;
+}
+.seyora-loader-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--sl-primary), var(--sl-secondary));
+  transition: width 0.25s ease;
+}
+.seyora-loader-progress-pct {
+  font-size: 11px;
+  color: var(--sl-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes seyora-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes seyora-ring-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+@keyframes seyora-logo-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.035);
+    opacity: 0.9;
+  }
+}
+@keyframes seyora-node-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.4);
+  }
+}
+
+@media (max-width: 480px) {
+  .seyora-loader-tagline {
+    margin-bottom: 18px;
+  }
+  .seyora-loader-status {
+    margin-bottom: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seyora-loader {
+    transition: opacity 200ms ease;
+  }
+  .seyora-loader-ring,
+  .seyora-loader-dashes,
+  .seyora-loader-node,
+  .seyora-loader-logo {
+    animation: none !important;
+  }
+  .seyora-loader-spinner {
+    animation-duration: 1.4s;
+  }
+}
+

@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import { useNavigationLoader } from "@/lib/context/navigation-loader-context";
+import { useTheme } from "@/lib/context/theme-context";
 
 export default function SeyoraPageLoader() {
   const { phase, progress } = useNavigationLoader();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
     <div className="seyora-loader" data-phase={phase} role="status" aria-live="polite" aria-label="Loading workspace" aria-hidden={phase === "idle"}>
@@ -20,12 +23,20 @@ export default function SeyoraPageLoader() {
       </div>
 
       <div className="seyora-loader-content">
-        <div className="seyora-loader-logo">
-          <Image src="/icon.svg" alt="" width={200} height={200} priority />
-        </div>
-        <div className="seyora-loader-wordmark">
-          Sey<span>ora</span>
-        </div>
+        {isDark ? (
+          <div className="seyora-loader-logo seyora-loader-logo-lockup">
+            <Image src="/dark-logo.png" alt="Seyora" width={1536} height={1024} priority sizes="260px" />
+          </div>
+        ) : (
+          <>
+            <div className="seyora-loader-logo seyora-loader-logo-icon">
+              <Image src="/icon.svg" alt="" width={200} height={200} priority />
+            </div>
+            <div className="seyora-loader-wordmark">
+              Sey<span>ora</span>
+            </div>
+          </>
+        )}
         <div className="seyora-loader-tagline">Plan. Build. Collaborate. Deliver.</div>
 
         <div className="seyora-loader-status">

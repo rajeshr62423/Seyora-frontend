@@ -83,9 +83,9 @@ export default function Providers({ children }: { children: ReactNode }) {
               </Provider>
             </AntdApp>
           </AntdThemeBridge>
+          <SeyoraPageLoader />
         </ThemeProvider>
       </AntdRegistry>
-      <SeyoraPageLoader />
     </NavigationLoaderProvider>
   );
 }

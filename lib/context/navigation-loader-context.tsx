@@ -54,7 +54,9 @@ export function NavigationLoaderProvider({ children }: { children: ReactNode }) 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const isFirstPathnameRun = useRef(true);
   const phaseRef = useRef(phase);
-  phaseRef.current = phase;
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   const clearTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
