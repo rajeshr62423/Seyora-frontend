@@ -23,20 +23,13 @@ export default function SeyoraPageLoader() {
       </div>
 
       <div className="seyora-loader-content">
-        {isDark ? (
-          <div className="seyora-loader-logo seyora-loader-logo-lockup">
+        <div className="seyora-loader-logo">
+          {isDark ? (
             <Image src="/dark-logo.png" alt="Seyora" width={1536} height={1024} priority sizes="260px" />
-          </div>
-        ) : (
-          <>
-            <div className="seyora-loader-logo seyora-loader-logo-icon">
-              <Image src="/icon.svg" alt="" width={200} height={200} priority />
-            </div>
-            <div className="seyora-loader-wordmark">
-              Sey<span>ora</span>
-            </div>
-          </>
-        )}
+          ) : (
+            <Image src="/light-logo.png" alt="Seyora" width={1264} height={843} priority sizes="260px" />
+          )}
+        </div>
         <div className="seyora-loader-tagline">Plan. Build. Collaborate. Deliver.</div>
 
         <div className="seyora-loader-status">
