@@ -1,0 +1,4 @@
+export const FETCH_USERS_REQUEST = "users/FETCH_USERS_REQUEST";
+export const FETCH_USERS_SUCCESS = "users/FETCH_USERS_SUCCESS";
+export const FETCH_USERS_FAILURE = "users/FETCH_USERS_FAILURE";
+export const SELECT_USER = "users/SELECT_USER";
