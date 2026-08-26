@@ -2003,6 +2003,9 @@ a {
   color: #5eead4;
   cursor: pointer;
 }
+:root[data-theme="light"] .link {
+  color: #0f766e;
+}
 .auth-progress {
   margin-bottom: 26px;
 }
