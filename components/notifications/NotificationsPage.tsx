@@ -3,7 +3,9 @@
 import { Activity, Bell, Check, GitBranch, MessageSquare, Settings } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMessage } from "@/lib/hooks/use-message";
-import { notifications as initialNotifications } from "@/lib/data/notifications";
+import { formatRelativeTime } from "@/lib/format";
+import { markAllReadRequest, markReadRequest } from "@/redux/notifications/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import type { NotificationCategory } from "@/types/notification";
 
 const TABS: { label: string; value: NotificationCategory | "all" }[] = [
@@ -24,20 +26,22 @@ const ICON_FOR: Record<NotificationCategory, typeof Bell> = {
 };
 
 export default function NotificationsPage() {
+  const dispatch = useAppDispatch();
   const message = useMessage();
-  const [items, setItems] = useState(initialNotifications);
+  const { list: items, loading, markingReadIds, markingAllRead } = useAppSelector((state) => state.notifications);
   const [activeTab, setActiveTab] = useState<NotificationCategory | "all">("all");
 
   const filtered = useMemo(
     () => (activeTab === "all" ? items : items.filter((n) => n.category === activeTab)),
-    [items, activeTab]
+    [items, activeTab],
   );
 
   const unreadCount = items.filter((n) => n.unread).length;
   const attentionCount = items.filter((n) => n.category === "assign" || n.category === "mention").length;
 
-  const markRead = (id: string) => {
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+  const handleMarkAllRead = () => {
+    dispatch(markAllReadRequest());
+    message.success("All notifications marked as read");
   };
 
   return (
@@ -52,15 +56,8 @@ export default function NotificationsPage() {
           <button type="button" className="btn" onClick={() => message.info("Preferences are not part of this demo.")}>
             <Settings size={15} /> Preferences
           </button>
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => {
-              setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
-              message.success("All notifications marked as read");
-            }}
-          >
-            Mark all read
+          <button type="button" className="btn primary" disabled={markingAllRead} onClick={handleMarkAllRead}>
+            {markingAllRead ? "Marking…" : "Mark all read"}
           </button>
         </div>
       </div>
@@ -83,13 +80,18 @@ export default function NotificationsPage() {
             ))}
           </div>
           <div>
-            {filtered.length === 0 ? (
+            {loading && items.length === 0 ? (
+              <div className="empty">
+                <strong>Loading notifications…</strong>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="empty">
                 <strong>No notifications in this category</strong>
               </div>
             ) : (
               filtered.map((n) => {
                 const Icon = ICON_FOR[n.category];
+                const isMarking = markingReadIds.includes(n.id);
                 return (
                   <div key={n.id} className={`notification-row ${n.unread ? "unread" : ""}`}>
                     <div className="notification-avatar">
@@ -97,15 +99,21 @@ export default function NotificationsPage() {
                     </div>
                     <div className="notification-copy">
                       <div className="notification-title">
-                        <strong>{n.actorName}</strong> {n.verb} <strong>{n.target}</strong>
+                        <strong>{n.actor?.name ?? "System"}</strong> {n.verb} <strong>{n.target}</strong>
                       </div>
                       <div className="notification-time">
-                        {n.time} · {n.unread ? "Unread" : "Read"}
+                        {formatRelativeTime(n.createdAt)} · {n.unread ? "Unread" : "Read"}
                       </div>
                     </div>
                     {n.unread ? <span className="badge badge-progressing">New</span> : <span className="badge badge-gray">Read</span>}
                     <div className="notification-actions">
-                      <button type="button" className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => markRead(n.id)}>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        style={{ width: 28, height: 28 }}
+                        disabled={!n.unread || isMarking}
+                        onClick={() => dispatch(markReadRequest(n.id))}
+                      >
                         <Check size={14} />
                       </button>
                     </div>

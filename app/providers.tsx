@@ -4,9 +4,9 @@ import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { App as AntdApp, ConfigProvider, theme as antdTheme } from "antd";
 import { useMemo, type ReactNode } from "react";
 import { Provider } from "react-redux";
+import AuthBootstrap from "@/components/providers/AuthBootstrap";
 import SeyoraPageLoader from "@/components/loading/SeyoraPageLoader";
 import { NavigationLoaderProvider } from "@/lib/context/navigation-loader-context";
-import { ProjectsProvider } from "@/lib/context/projects-context";
 import { ThemeProvider, useTheme } from "@/lib/context/theme-context";
 import { store } from "@/redux/store";
 
@@ -79,7 +79,8 @@ export default function Providers({ children }: { children: ReactNode }) {
           <AntdThemeBridge>
             <AntdApp>
               <Provider store={store}>
-                <ProjectsProvider>{children}</ProjectsProvider>
+                <AuthBootstrap />
+                {children}
               </Provider>
             </AntdApp>
           </AntdThemeBridge>

@@ -3,11 +3,11 @@
 import { Modal } from "antd";
 import { Check, Folder, Search, Users } from "lucide-react";
 import { useMemo, useState } from "react";
-import { workspaceTasks } from "@/lib/data/global-tasks";
-import { useProjects } from "@/lib/context/projects-context";
 import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { scrollableModalStyles } from "@/lib/modal-styles";
-import { useAppSelector } from "@/redux/hooks";
+import { TASK_STATUS_LABEL } from "@/lib/status";
+import { openTask } from "@/redux/tasks/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -28,12 +28,19 @@ interface Result {
 
 export default function CommandPalette({ open, onClose, initialQuery = "" }: CommandPaletteProps) {
   const router = useAppRouter();
-  const { projects } = useProjects();
+  const dispatch = useAppDispatch();
+  const projects = useAppSelector((state) => state.projects.list);
   const users = useAppSelector((state) => state.users.list);
+  const myTasks = useAppSelector((state) => state.tasks.myTasks);
   const [query, setQuery] = useState(initialQuery);
 
   const go = (href: string) => {
     router.push(href);
+    onClose();
+  };
+
+  const openTaskResult = (taskId: string) => {
+    dispatch(openTask(taskId));
     onClose();
   };
 
@@ -54,13 +61,13 @@ export default function CommandPalette({ open, onClose, initialQuery = "" }: Com
       badge: "Member",
       onSelect: () => go(`/users/${u.id}`),
     }));
-    const taskResults: Result[] = workspaceTasks.map((t) => ({
+    const taskResults: Result[] = myTasks.map((t) => ({
       kind: "task",
       id: t.id,
-      title: `${t.id} · ${t.title}`,
-      subtitle: t.projectName,
-      badge: t.status,
-      onSelect: () => go(`/projects/${t.projectSlug}`),
+      title: `${t.code} · ${t.title}`,
+      subtitle: t.project?.name ?? "",
+      badge: TASK_STATUS_LABEL[t.status],
+      onSelect: () => openTaskResult(t.id),
     }));
 
     const all = [...projectResults, ...userResults, ...taskResults];
@@ -68,7 +75,7 @@ export default function CommandPalette({ open, onClose, initialQuery = "" }: Com
     if (!q) return all.slice(0, 8);
     return all.filter((r) => `${r.title} ${r.subtitle}`.toLowerCase().includes(q)).slice(0, 12);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, users, query]);
+  }, [projects, users, myTasks, query]);
 
   const iconFor = (kind: ResultKind) =>
     kind === "task" ? <Check size={16} /> : kind === "project" ? <Folder size={16} /> : <Users size={16} />;

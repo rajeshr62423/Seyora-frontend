@@ -2,12 +2,14 @@
 
 import { Input } from "antd";
 import { useState } from "react";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
 import { logout } from "@/redux/auth/action";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 export default function ProfileTab() {
   const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const message = useMessage();
   const { user, loading, isAuthenticated } = useAppSelector(
     (state) => state.auth,
@@ -121,7 +123,10 @@ export default function ProfileTab() {
           <button
             type="button"
             className="btn danger"
-            onClick={() => dispatch(logout())}
+            onClick={() => {
+              dispatch(logout());
+              router.push("/login");
+            }}
           >
             Sign out
           </button>

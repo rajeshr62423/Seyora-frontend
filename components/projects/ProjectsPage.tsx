@@ -3,7 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, SlidersHorizontal } from "lucide-react";
-import { useProjects } from "@/lib/context/projects-context";
+import { openCreateProjectModal } from "@/redux/projects/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import type {
   Project,
   ProjectSortKey,
@@ -21,8 +22,6 @@ const VIEW_STORAGE_KEY = "Seyora-project-view";
 function sortProjects(projects: Project[], sortKey: ProjectSortKey): Project[] {
   const sorted = [...projects];
   switch (sortKey) {
-    case "progress":
-      return sorted.sort((a, b) => b.progress - a.progress);
     case "due-date":
       return sorted.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     case "name":
@@ -34,7 +33,8 @@ function sortProjects(projects: Project[], sortKey: ProjectSortKey): Project[] {
 }
 
 export default function ProjectsPage() {
-  const { projects, openCreateModal } = useProjects();
+  const dispatch = useAppDispatch();
+  const projects = useAppSelector((state) => state.projects.list);
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
@@ -128,7 +128,7 @@ export default function ProjectsPage() {
           <button
             type="button"
             className="btn primary"
-            onClick={openCreateModal}
+            onClick={() => dispatch(openCreateProjectModal())}
           >
             <Plus size={15} />
             Create project

@@ -2,40 +2,55 @@ import type { ProjectStatus } from "@/types/project";
 import type { TaskPriority, TaskStatus } from "@/types/task";
 
 export const STATUS_LABEL: Record<ProjectStatus, string> = {
-  "in-progress": "In Progress",
-  "in-review": "In Review",
-  "on-track": "On Track",
-  backlog: "Backlog",
+  IN_PROGRESS: "In Progress",
+  IN_REVIEW: "In Review",
+  ON_TRACK: "On Track",
+  BACKLOG: "Backlog",
 };
 
 export const STATUS_BADGE_CLASS: Record<ProjectStatus, string> = {
-  "in-progress": "badge-progressing",
-  "in-review": "badge-review",
-  "on-track": "badge-done",
-  backlog: "badge-gray",
+  IN_PROGRESS: "badge-progressing",
+  IN_REVIEW: "badge-review",
+  ON_TRACK: "badge-done",
+  BACKLOG: "badge-gray",
 };
 
 export const STATUS_FILTER_OPTIONS: { value: "all" | ProjectStatus; label: string }[] = [
   { value: "all", label: "All statuses" },
-  { value: "in-progress", label: "In Progress" },
-  { value: "in-review", label: "In Review" },
-  { value: "on-track", label: "On Track" },
-  { value: "backlog", label: "Backlog" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "IN_REVIEW", label: "In Review" },
+  { value: "ON_TRACK", label: "On Track" },
+  { value: "BACKLOG", label: "Backlog" },
 ];
 
+export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
+  BACKLOG: "Backlog",
+  TODO: "Todo",
+  IN_PROGRESS: "In Progress",
+  IN_REVIEW: "In Review",
+  DONE: "Done",
+};
+
 export const TASK_STATUS_BADGE_CLASS: Record<TaskStatus, string> = {
-  Backlog: "badge-gray",
-  Todo: "badge-todo",
-  "In Progress": "badge-progressing",
-  "In Review": "badge-review",
-  Done: "badge-done",
+  BACKLOG: "badge-gray",
+  TODO: "badge-todo",
+  IN_PROGRESS: "badge-progressing",
+  IN_REVIEW: "badge-review",
+  DONE: "badge-done",
+};
+
+export const TASK_PRIORITY_LABEL: Record<TaskPriority, string> = {
+  LOW: "Low",
+  MEDIUM: "Medium",
+  HIGH: "High",
+  CRITICAL: "Critical",
 };
 
 export const TASK_PRIORITY_BADGE_CLASS: Record<TaskPriority, string> = {
-  Low: "badge-gray",
-  Medium: "badge-progressing",
-  High: "badge-review",
-  Critical: "badge-danger",
+  LOW: "badge-gray",
+  MEDIUM: "badge-progressing",
+  HIGH: "badge-review",
+  CRITICAL: "badge-danger",
 };
 
-export const TASK_STATUSES: TaskStatus[] = ["Backlog", "Todo", "In Progress", "In Review", "Done"];
+export const TASK_STATUSES: TaskStatus[] = ["BACKLOG", "TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"];

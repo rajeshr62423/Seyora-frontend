@@ -1,18 +1,21 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import { useProjects } from "@/lib/context/projects-context";
+import { useProjectBySlug } from "@/lib/hooks/use-project-by-slug";
+import { useProjectTasks } from "@/lib/hooks/use-project-tasks";
 import ProjectHeaderCard from "./ProjectHeaderCard";
 
 export default function ProjectDetailsPage({ slug }: { slug: string }) {
-  const { getProjectBySlug } = useProjects();
-  const project = getProjectBySlug(slug);
+  const { project, loading } = useProjectBySlug(slug);
+  const { tasks } = useProjectTasks(project?.id);
 
+  if (loading && !project) return null;
   if (!project) notFound();
 
-  const completed = Math.round((project.progress / 100) * project.taskCount);
-  const inProgress = Math.max(project.taskCount - completed - 1, 0);
-  const overdue = project.status === "backlog" ? 1 : 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const completed = tasks.filter((t) => t.status === "DONE").length;
+  const inProgress = tasks.filter((t) => t.status === "IN_PROGRESS" || t.status === "IN_REVIEW").length;
+  const overdue = tasks.filter((t) => t.status !== "DONE" && t.dueDate !== null && t.dueDate < today).length;
 
   return (
     <div className="page">
@@ -21,12 +24,11 @@ export default function ProjectDetailsPage({ slug }: { slug: string }) {
       <div className="grid g4" style={{ marginTop: 14 }}>
         <div className="card kpi">
           <span className="kpi-label">Total tasks</span>
-          <div className="kpi-value">{project.taskCount}</div>
+          <div className="kpi-value">{tasks.length}</div>
         </div>
         <div className="card kpi">
           <span className="kpi-label">Completed</span>
           <div className="kpi-value">{completed}</div>
-          <div className="trend up">+{Math.max(1, Math.round(project.progress / 10))}% this sprint</div>
         </div>
         <div className="card kpi">
           <span className="kpi-label">In progress</span>
@@ -75,7 +77,7 @@ export default function ProjectDetailsPage({ slug }: { slug: string }) {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span className="tiny muted">Owner</span>
-              <strong className="small">{project.team[0]?.name ?? "Unassigned"}</strong>
+              <strong className="small">{project.owner.name}</strong>
             </div>
           </div>
         </div>

@@ -8,7 +8,6 @@ import ProjectFilters from "./ProjectFilters";
 
 const SORT_OPTIONS: { value: ProjectSortKey; label: string }[] = [
   { value: "recently-updated", label: "Recently updated" },
-  { value: "progress", label: "Progress" },
   { value: "due-date", label: "Due date" },
   { value: "name", label: "Name" },
 ];

@@ -2,12 +2,11 @@
 
 import { Search } from "lucide-react";
 import { useState } from "react";
-import { useProjects } from "@/lib/context/projects-context";
 import { useAppSelector } from "@/redux/hooks";
 import ProjectCard from "@/components/projects/ProjectCard";
 
 export default function SearchPage() {
-  const { projects } = useProjects();
+  const projects = useAppSelector((state) => state.projects.list);
   const users = useAppSelector((state) => state.users.list);
   const [query, setQuery] = useState("");
 

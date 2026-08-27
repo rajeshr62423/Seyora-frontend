@@ -1,29 +1,59 @@
 "use client";
 
-import { Form, Input, Select } from "antd";
+import { Form, Input } from "antd";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useAppRouter } from "@/lib/hooks/use-app-router";
+import { useMessage } from "@/lib/hooks/use-message";
+import { createOrganizationRequest } from "@/redux/organization/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import AuthLayout, { ONBOARDING_STEPS } from "./AuthLayout";
 
 interface OnboardingFormValues {
   orgName: string;
-  industry: string;
-  teamSize: string;
 }
 
 export default function OnboardingPage() {
   const router = useAppRouter();
+  const dispatch = useAppDispatch();
+  const message = useMessage();
+  const { creating, createError, current } = useAppSelector((state) => state.organization);
+  const [attempted, setAttempted] = useState(false);
   const {
     control,
     handleSubmit,
     formState: { errors },
   } = useForm<OnboardingFormValues>({
-    defaultValues: {
-      orgName: "Chola Technology",
-      industry: "Software development",
-      teamSize: "11-50",
-    },
+    defaultValues: { orgName: "Chola Technology" },
   });
+
+  // Already has an organization — don't let a revisit to /onboarding create
+  // a second, orphaned one. `!attempted` excludes the moment right after
+  // this page's own submission succeeds (that case is handled by the
+  // effect below, which navigates to /invite instead).
+  useEffect(() => {
+    if (current && !attempted) {
+      router.push("/dashboard");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, attempted]);
+
+  useEffect(() => {
+    if (!attempted || creating) return;
+    if (createError) {
+      message.error(createError);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAttempted(false);
+    } else if (current) {
+      router.push("/invite");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempted, creating, createError, current]);
+
+  const onSubmit = (values: OnboardingFormValues) => {
+    setAttempted(true);
+    dispatch(createOrganizationRequest({ name: values.orgName }));
+  };
 
   return (
     <AuthLayout
@@ -34,10 +64,7 @@ export default function OnboardingPage() {
     >
       <h2 className="auth-title">Create your organization</h2>
       <div className="auth-sub">A workspace for your engineering team.</div>
-      <Form
-        layout="vertical"
-        onFinish={handleSubmit(() => router.push("/invite"))}
-      >
+      <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
         <Form.Item
           label="Organization name"
           validateStatus={errors.orgName ? "error" : ""}
@@ -49,32 +76,6 @@ export default function OnboardingPage() {
             rules={{ required: "Organization name is required" }}
             render={({ field }) => (
               <Input {...field} placeholder="Chola Technology" />
-            )}
-          />
-        </Form.Item>
-        <Form.Item label="Industry">
-          <Controller
-            name="industry"
-            control={control}
-            render={({ field }) => (
-              <Input {...field} placeholder="Software development" />
-            )}
-          />
-        </Form.Item>
-        <Form.Item label="Team size">
-          <Controller
-            name="teamSize"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                options={[
-                  { value: "1-10", label: "1–10" },
-                  { value: "11-50", label: "11–50" },
-                  { value: "51-200", label: "51–200" },
-                  { value: "200+", label: "200+" },
-                ]}
-              />
             )}
           />
         </Form.Item>
@@ -99,8 +100,9 @@ export default function OnboardingPage() {
           type="submit"
           className="btn primary"
           style={{ width: "100%", justifyContent: "center", marginTop: 12 }}
+          disabled={creating}
         >
-          Continue
+          {creating ? "Creating…" : "Continue"}
         </button>
       </Form>
     </AuthLayout>

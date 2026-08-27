@@ -2,11 +2,13 @@
 
 import { Form, Input } from "antd";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
+import { getRememberedEmail } from "@/lib/api/remembered-email";
 import { loginRequest } from "@/redux/auth/action";
-import { useAppDispatch } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import AuthLayout from "./AuthLayout";
 
 interface LoginFormValues {
@@ -21,19 +23,59 @@ export default function LoginPage() {
   const router = useAppRouter();
   const dispatch = useAppDispatch();
   const message = useMessage();
+  const { loading, isAuthenticated, error } = useAppSelector((state) => state.auth);
+  const [attempted, setAttempted] = useState(false);
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
-    defaultValues: { email: "john@acme.dev", password: "", remember: false },
+    defaultValues: { email: "", password: "", remember: false },
   });
 
+  // Defaults to "" on both server and first client render (SSR-safe, no
+  // hydration mismatch), then fills in from localStorage right after mount —
+  // same pattern as theme-context.tsx.
+  useEffect(() => {
+    const remembered = getRememberedEmail();
+    if (remembered) {
+      setValue("email", remembered);
+      setValue("remember", true);
+    }
+  }, [setValue]);
+
   const onSubmit = (values: LoginFormValues) => {
-    dispatch(loginRequest({ email: values.email, password: values.password }));
-    message.success("You're signed in to Seyora");
-    router.push("/dashboard");
+    setAttempted(true);
+    dispatch(loginRequest({ email: values.email, password: values.password, remember: values.remember }));
   };
+
+  // Reacts once the saga resolves the dispatched login above — `attempted`
+  // keeps the toast from firing on unrelated auth-state changes (e.g. a
+  // session restore elsewhere landing isAuthenticated: true while this page
+  // is open). Resetting it back to false here (not in the event handler) is
+  // a deliberate, well-understood use of setState-in-effect.
+  useEffect(() => {
+    if (!attempted || loading) return;
+    if (isAuthenticated) {
+      message.success("You're signed in to Seyora");
+    } else if (error) {
+      message.error(error);
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAttempted(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempted, loading, isAuthenticated, error]);
+
+  // Separate from the toast above so it also covers an already-authenticated
+  // visitor landing on /login directly (e.g. session restored from a prior
+  // visit), not just a fresh submit.
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   return (
     <AuthLayout
@@ -63,7 +105,7 @@ export default function LoginPage() {
               pattern: { value: EMAIL_PATTERN, message: "Enter a valid email" },
             }}
             render={({ field }) => (
-              <Input {...field} placeholder="john@acme.dev" />
+              <Input {...field} placeholder="john@acme.dev" autoComplete="username" />
             )}
           />
         </Form.Item>
@@ -77,7 +119,7 @@ export default function LoginPage() {
             control={control}
             rules={{ required: "Password is required" }}
             render={({ field }) => (
-              <Input.Password {...field} placeholder="••••••••" />
+              <Input.Password {...field} placeholder="••••••••" autoComplete="current-password" />
             )}
           />
         </Form.Item>

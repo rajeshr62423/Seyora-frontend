@@ -1,11 +1,12 @@
 "use client";
 
 import { Form, Input, Select } from "antd";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { useProjects } from "@/lib/context/projects-context";
-import { users } from "@/lib/data/users";
 import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
+import { createProjectRequest } from "@/redux/projects/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import type { ProjectStatus } from "@/types/project";
 import AuthLayout, { ONBOARDING_STEPS } from "./AuthLayout";
 
@@ -17,8 +18,10 @@ interface FirstProjectFormValues {
 
 export default function FirstProjectPage() {
   const router = useAppRouter();
+  const dispatch = useAppDispatch();
   const message = useMessage();
-  const { addProject } = useProjects();
+  const { creating, createError } = useAppSelector((state) => state.projects);
+  const [attempted, setAttempted] = useState(false);
   const {
     control,
     handleSubmit,
@@ -27,19 +30,36 @@ export default function FirstProjectPage() {
     defaultValues: {
       name: "Website Redesign",
       description: "Modernize the customer-facing experience.",
-      status: "on-track",
+      status: "ON_TRACK",
     },
   });
+
+  useEffect(() => {
+    if (!attempted || creating) return;
+    if (createError) {
+      message.error(createError);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAttempted(false);
+    } else {
+      message.success("Your first project was created");
+      router.push("/dashboard");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempted, creating, createError]);
 
   const onSubmit = (values: FirstProjectFormValues) => {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 30);
-    addProject(
-      { name: values.name, description: values.description, status: values.status, team: [users[0].id], dueDate: dueDate.toISOString().slice(0, 10) },
-      [users[0]]
+    setAttempted(true);
+    dispatch(
+      createProjectRequest({
+        name: values.name,
+        description: values.description,
+        status: values.status,
+        team: [],
+        dueDate: dueDate.toISOString().slice(0, 10),
+      }),
     );
-    message.success("Your first project was created");
-    router.push("/dashboard");
   };
 
   return (
@@ -75,16 +95,16 @@ export default function FirstProjectPage() {
               <Select
                 {...field}
                 options={[
-                  { value: "on-track", label: "On Track" },
-                  { value: "in-progress", label: "In Progress" },
-                  { value: "backlog", label: "Backlog" },
+                  { value: "ON_TRACK", label: "On Track" },
+                  { value: "IN_PROGRESS", label: "In Progress" },
+                  { value: "BACKLOG", label: "Backlog" },
                 ]}
               />
             )}
           />
         </Form.Item>
-        <button type="submit" className="btn primary" style={{ width: "100%", justifyContent: "center", marginTop: 6 }}>
-          Create project
+        <button type="submit" className="btn primary" style={{ width: "100%", justifyContent: "center", marginTop: 6 }} disabled={creating}>
+          {creating ? "Creating…" : "Create project"}
         </button>
       </Form>
     </AuthLayout>

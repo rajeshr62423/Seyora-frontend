@@ -3,8 +3,8 @@ import type { Project } from "@/types/project";
 
 export default function ProjectSummary({ projects }: { projects: Project[] }) {
   const total = projects.length;
-  const active = projects.filter((p) => p.status === "in-progress" || p.status === "in-review").length;
-  const onTrack = projects.filter((p) => p.status === "on-track" || p.status === "in-progress").length;
+  const active = projects.filter((p) => p.status === "IN_PROGRESS" || p.status === "IN_REVIEW").length;
+  const onTrack = projects.filter((p) => p.status === "ON_TRACK" || p.status === "IN_PROGRESS").length;
   const onTrackPct = total ? Math.round((onTrack / total) * 100) : 0;
   const dueThisMonth = projects.filter((p) => isDueThisMonth(p.dueDate)).length;
 

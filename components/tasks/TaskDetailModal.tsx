@@ -1,113 +1,277 @@
 "use client";
 
-import { Modal } from "antd";
-import { useState } from "react";
+import { DatePicker, Input, Modal, Select } from "antd";
+import dayjs from "dayjs";
+import { useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { formatDisplayDate } from "@/lib/format";
 import { useMessage } from "@/lib/hooks/use-message";
 import { scrollableModalStyles } from "@/lib/modal-styles";
-import { TASK_PRIORITY_BADGE_CLASS, TASK_STATUS_BADGE_CLASS } from "@/lib/status";
-import type { ProjectTask, WorkspaceTask } from "@/types/task";
+import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from "@/lib/status";
+import {
+  addCommentRequest,
+  addSubtaskRequest,
+  closeTask,
+  deleteSubtaskRequest,
+  updateSubtaskRequest,
+  updateTaskRequest,
+} from "@/redux/tasks/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import type { TaskPriority, TaskStatus } from "@/types/task";
 
-const SUBTASKS = ["Set up API", "Create database schema", "Implement authentication", "Write tests"];
+const { TextArea } = Input;
 
-export type DetailTask = ProjectTask | WorkspaceTask;
-
-function hasProjectName(task: DetailTask): task is WorkspaceTask {
-  return "projectName" in task;
-}
-
-export default function TaskDetailModal({ task, onClose }: { task: DetailTask | null; onClose: () => void }) {
+export default function TaskDetailModal() {
+  const dispatch = useAppDispatch();
   const message = useMessage();
-  const [checked, setChecked] = useState<boolean[]>([true, true, false, false]);
+  const {
+    selectedTaskId,
+    projectTasks,
+    myTasks,
+    updatingTaskIds,
+    updateError,
+    subtaskSaving,
+    subtaskError,
+    commentSending,
+    commentError,
+  } = useAppSelector((state) => state.tasks);
+  const task = selectedTaskId
+    ? (projectTasks.find((t) => t.id === selectedTaskId) ?? myTasks.find((t) => t.id === selectedTaskId))
+    : undefined;
+
+  // A task that was open can vanish from both lists (e.g. navigating to a
+  // different project's board overwrites `projectTasks`) — auto-close
+  // rather than render a stale/blank modal.
+  useEffect(() => {
+    if (selectedTaskId && !task) {
+      dispatch(closeTask());
+    }
+  }, [selectedTaskId, task, dispatch]);
+
+  useEffect(() => {
+    if (updateError) message.error(updateError);
+  }, [updateError, message]);
+  useEffect(() => {
+    if (subtaskError) message.error(subtaskError);
+  }, [subtaskError, message]);
+  useEffect(() => {
+    if (commentError) message.error(commentError);
+  }, [commentError, message]);
+
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [commentBody, setCommentBody] = useState("");
+
+  if (!task) {
+    return <Modal open={false} footer={null} title="" onCancel={() => dispatch(closeTask())} />;
+  }
+
+  const isUpdating = updatingTaskIds.includes(task.id);
+
+  const handleAddSubtask = () => {
+    const title = newSubtaskTitle.trim();
+    if (!title) return;
+    dispatch(addSubtaskRequest({ taskId: task.id, title }));
+    setNewSubtaskTitle("");
+  };
+
+  const handleAddComment = () => {
+    const body = commentBody.trim();
+    if (!body) return;
+    dispatch(addCommentRequest({ taskId: task.id, body }));
+    setCommentBody("");
+  };
 
   return (
     <Modal
-      title={task ? `${task.id} · Task details` : ""}
-      open={!!task}
-      onCancel={onClose}
+      title={`${task.code} · Task details`}
+      open={!!selectedTaskId}
+      onCancel={() => dispatch(closeTask())}
       destroyOnHidden
       centered
       styles={scrollableModalStyles}
       footer={
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button type="button" className="btn" onClick={onClose}>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button type="button" className="btn" onClick={() => dispatch(closeTask())}>
             Close
-          </button>
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => {
-              onClose();
-              message.success("Task updated successfully");
-            }}
-          >
-            Save changes
           </button>
         </div>
       }
     >
-      {task ? (
-        <div>
-          <div style={{ fontSize: 19, fontWeight: 760, marginBottom: 8 }}>{task.title}</div>
-          <div className="small muted" style={{ marginBottom: 18 }}>
-            Implement the production-ready workflow with validation, tests and observability.
-            {hasProjectName(task) ? ` This task is part of the ${task.projectName} project.` : ""}
+      <div>
+        <Input
+          defaultValue={task.title}
+          key={`${task.id}-title`}
+          onBlur={(e) => {
+            const value = e.target.value.trim();
+            if (value && value !== task.title) {
+              dispatch(updateTaskRequest({ id: task.id, values: { title: value } }));
+            }
+          }}
+          style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}
+        />
+        <TextArea
+          defaultValue={task.description}
+          key={`${task.id}-description`}
+          placeholder="Add a description…"
+          rows={2}
+          onBlur={(e) => {
+            const value = e.target.value;
+            if (value !== task.description) {
+              dispatch(updateTaskRequest({ id: task.id, values: { description: value } }));
+            }
+          }}
+          style={{ marginBottom: 18 }}
+        />
+
+        <div className="grid g2">
+          <div>
+            <div className="tiny muted" style={{ marginBottom: 5 }}>
+              Status
+            </div>
+            <Select<TaskStatus>
+              value={task.status}
+              style={{ width: "100%" }}
+              loading={isUpdating}
+              options={(Object.keys(TASK_STATUS_LABEL) as TaskStatus[]).map((value) => ({
+                value,
+                label: TASK_STATUS_LABEL[value],
+              }))}
+              onChange={(status) => dispatch(updateTaskRequest({ id: task.id, values: { status } }))}
+            />
           </div>
-          <div className="grid g2">
-            <div>
-              <div className="tiny muted" style={{ marginBottom: 5 }}>
-                Status
-              </div>
-              <span className={`badge ${TASK_STATUS_BADGE_CLASS[task.status]}`}>
-                <span className="status-dot" />
-                {task.status}
-              </span>
+          <div>
+            <div className="tiny muted" style={{ marginBottom: 5 }}>
+              Priority
             </div>
-            <div>
-              <div className="tiny muted" style={{ marginBottom: 5 }}>
-                Priority
-              </div>
-              <span className={`badge ${TASK_PRIORITY_BADGE_CLASS[task.priority]}`}>{task.priority}</span>
-            </div>
-            <div>
-              <div className="tiny muted" style={{ marginBottom: 5 }}>
-                Assignee
-              </div>
-              <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                <span className="avatar" style={{ width: 22, height: 22, fontSize: 9 }}>
-                  {task.assigneeInitials}
-                </span>
-                {task.assigneeName}
-              </span>
-            </div>
-            <div>
-              <div className="tiny muted" style={{ marginBottom: 5 }}>
-                Due date
-              </div>
-              <strong className="small">{task.dueDate}</strong>
-            </div>
+            <Select<TaskPriority>
+              value={task.priority}
+              style={{ width: "100%" }}
+              loading={isUpdating}
+              options={(Object.keys(TASK_PRIORITY_LABEL) as TaskPriority[]).map((value) => ({
+                value,
+                label: TASK_PRIORITY_LABEL[value],
+              }))}
+              onChange={(priority) => dispatch(updateTaskRequest({ id: task.id, values: { priority } }))}
+            />
           </div>
-          <hr style={{ border: 0, borderTop: "1px solid var(--border)", margin: "18px 0" }} />
-          <div className="card card-pad">
-            <strong>Subtasks</strong>
-            <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
-              {SUBTASKS.map((label, i) => (
-                <label key={label} style={{ display: "flex", gap: 8, fontSize: 11, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={checked[i]}
-                    onChange={() => setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)))}
-                  />
-                  {label}
-                </label>
-              ))}
+          <div>
+            <div className="tiny muted" style={{ marginBottom: 5 }}>
+              Assignee
             </div>
+            <Select
+              value={task.assigneeId ?? undefined}
+              allowClear
+              placeholder="Unassigned"
+              style={{ width: "100%" }}
+              loading={isUpdating}
+              options={
+                task.assignee ? [{ value: task.assigneeId!, label: task.assignee.name }] : []
+              }
+              onChange={(assigneeId) =>
+                dispatch(updateTaskRequest({ id: task.id, values: { assigneeId: assigneeId ?? null } }))
+              }
+            />
           </div>
-          <div style={{ marginTop: 18 }}>
-            <strong>Comments</strong>
-            <textarea className="textarea" style={{ width: "100%", marginTop: 9 }} placeholder="Write a comment..." />
+          <div>
+            <div className="tiny muted" style={{ marginBottom: 5 }}>
+              Due date
+            </div>
+            <DatePicker
+              value={task.dueDate ? dayjs(task.dueDate) : null}
+              style={{ width: "100%" }}
+              onChange={(date) =>
+                dispatch(updateTaskRequest({ id: task.id, values: { dueDate: date ? date.format("YYYY-MM-DD") : undefined } }))
+              }
+            />
           </div>
         </div>
-      ) : null}
+
+        <hr style={{ border: 0, borderTop: "1px solid var(--border)", margin: "18px 0" }} />
+
+        <div className="card card-pad">
+          <strong>Subtasks</strong>
+          <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+            {task.subtasks.map((subtask) => (
+              <div key={subtask.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11 }}>
+                <label style={{ display: "flex", gap: 8, alignItems: "center", flex: 1 }}>
+                  <input
+                    type="checkbox"
+                    checked={subtask.done}
+                    disabled={subtaskSaving}
+                    onChange={() =>
+                      dispatch(
+                        updateSubtaskRequest({
+                          taskId: task.id,
+                          subtaskId: subtask.id,
+                          values: { done: !subtask.done },
+                        }),
+                      )
+                    }
+                  />
+                  <span style={{ textDecoration: subtask.done ? "line-through" : "none" }}>{subtask.title}</span>
+                </label>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  style={{ width: 22, height: 22 }}
+                  aria-label="Remove subtask"
+                  disabled={subtaskSaving}
+                  onClick={() => dispatch(deleteSubtaskRequest({ taskId: task.id, subtaskId: subtask.id }))}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <Input
+              placeholder="Add a subtask…"
+              value={newSubtaskTitle}
+              onChange={(e) => setNewSubtaskTitle(e.target.value)}
+              onPressEnter={handleAddSubtask}
+            />
+            <button type="button" className="btn" disabled={subtaskSaving} onClick={handleAddSubtask}>
+              Add
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <strong>Comments</strong>
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            {task.comments.map((comment) => (
+              <div key={comment.id} style={{ display: "flex", gap: 8 }}>
+                <span className="avatar" style={{ width: 24, height: 24, fontSize: 9 }}>
+                  {comment.author.initials}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11 }}>
+                    <strong>{comment.author.name}</strong>{" "}
+                    <span className="tiny muted">{formatDisplayDate(comment.createdAt)}</span>
+                  </div>
+                  <div className="small" style={{ marginTop: 2 }}>
+                    {comment.body}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <textarea
+              className="textarea"
+              style={{ width: "100%" }}
+              placeholder="Write a comment..."
+              value={commentBody}
+              onChange={(e) => setCommentBody(e.target.value)}
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+            <button type="button" className="btn primary" disabled={commentSending || !commentBody.trim()} onClick={handleAddComment}>
+              {commentSending ? "Posting…" : "Post comment"}
+            </button>
+          </div>
+        </div>
+      </div>
     </Modal>
   );
 }

@@ -3,7 +3,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { useEffect } from "react";
-import { useProjects } from "@/lib/context/projects-context";
 import { selectUser } from "@/redux/users/action";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import ProjectStatus from "@/components/projects/ProjectStatus";
@@ -11,7 +10,7 @@ import ProjectStatus from "@/components/projects/ProjectStatus";
 export default function UserDetailsPage({ userId }: { userId: string }) {
   const dispatch = useAppDispatch();
   const { list: users, loading } = useAppSelector((state) => state.users);
-  const { projects } = useProjects();
+  const projects = useAppSelector((state) => state.projects.list);
   const user = users.find((u) => u.id === userId);
 
   useEffect(() => {

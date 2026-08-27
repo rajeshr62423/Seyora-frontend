@@ -12,12 +12,10 @@ import Link from "next/link";
 import { useMemo } from "react";
 import BarChart from "@/components/charts/BarChart";
 import Donut from "@/components/charts/Donut";
-import { useProjects } from "@/lib/context/projects-context";
-import { useSelectedTask } from "@/lib/context/selected-task-context";
-import { workspaceActivity } from "@/lib/data/activity";
-import { workspaceTasks } from "@/lib/data/global-tasks";
-import { formatDisplayDate } from "@/lib/format";
-import { useAppSelector } from "@/redux/hooks";
+import { formatDisplayDate, formatRelativeTime } from "@/lib/format";
+import { openCreateProjectModal } from "@/redux/projects/action";
+import { openTask } from "@/redux/tasks/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 const PRIORITY_WEEK = [
   { label: "M", value: 34 },
@@ -30,9 +28,11 @@ const PRIORITY_WEEK = [
 ];
 
 export default function DashboardPage() {
-  const { projects, openCreateModal } = useProjects();
+  const dispatch = useAppDispatch();
+  const projects = useAppSelector((state) => state.projects.list);
   const users = useAppSelector((state) => state.users.list);
-  const { openTask } = useSelectedTask();
+  const myTasks = useAppSelector((state) => state.tasks.myTasks);
+  const recentActivity = useAppSelector((state) => state.activity.items);
 
   const totals = useMemo(() => {
     const totalTasks = projects.reduce((sum, p) => sum + p.taskCount, 0);
@@ -44,15 +44,14 @@ export default function DashboardPage() {
       const done = Math.round((p.progress / 100) * p.taskCount);
       completed += done;
       const remaining = p.taskCount - done;
-      if (p.status === "in-review") inReview += remaining;
-      else if (p.status === "in-progress") inProgress += remaining;
+      if (p.status === "IN_REVIEW") inReview += remaining;
+      else if (p.status === "IN_PROGRESS") inProgress += remaining;
       else todo += remaining;
     }
-    const overdue = workspaceTasks.filter(
-      (t) => t.status !== "Done" && t.dueDate < "2026-08-26",
-    ).length;
+    const today = new Date().toISOString().slice(0, 10);
+    const overdue = myTasks.filter((t) => t.status !== "DONE" && t.dueDate !== null && t.dueDate < today).length;
     return { totalTasks, completed, inProgress, inReview, todo, overdue };
-  }, [projects]);
+  }, [projects, myTasks]);
 
   const kpis = [
     {
@@ -110,8 +109,9 @@ export default function DashboardPage() {
   const recentlyUpdated = [...projects]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 3);
-  const upcomingDeadlines = [...workspaceTasks]
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  const upcomingDeadlines = myTasks
+    .filter((t) => t.dueDate !== null && t.status !== "DONE")
+    .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))
     .slice(0, 4);
 
   return (
@@ -130,7 +130,7 @@ export default function DashboardPage() {
           <button
             type="button"
             className="btn primary"
-            onClick={openCreateModal}
+            onClick={() => dispatch(openCreateProjectModal())}
           >
             <Plus size={15} /> New project
           </button>
@@ -259,12 +259,12 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="panel-body">
-            {workspaceActivity.slice(0, 4).map((a) => (
+            {recentActivity.slice(0, 4).map((a) => (
               <div key={a.id} className="activity">
-                <span className="avatar">{a.actorInitials}</span>
+                <span className="avatar">{a.actor.initials}</span>
                 <div className="activity-text">
-                  <strong>{a.actorName}</strong> {a.action}
-                  <div className="activity-time">{a.time}</div>
+                  <strong>{a.actor.name}</strong> {a.action}
+                  <div className="activity-time">{formatRelativeTime(a.createdAt)}</div>
                 </div>
               </div>
             ))}
@@ -280,7 +280,7 @@ export default function DashboardPage() {
               <div
                 key={t.id}
                 className="list-row"
-                onClick={() => openTask(t)}
+                onClick={() => dispatch(openTask(t.id))}
                 style={{ cursor: "pointer" }}
               >
                 <div className="project-icon" style={{ width: 34, height: 34 }}>
@@ -289,10 +289,10 @@ export default function DashboardPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10, fontWeight: 650 }}>{t.title}</div>
                   <div className="tiny muted">
-                    {t.id} · {t.projectName}
+                    {t.code} · {t.project?.name ?? ""}
                   </div>
                 </div>
-                <span className="tiny">{formatDisplayDate(t.dueDate)}</span>
+                <span className="tiny">{formatDisplayDate(t.dueDate!)}</span>
               </div>
             ))}
           </div>

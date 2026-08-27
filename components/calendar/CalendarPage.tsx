@@ -1,18 +1,21 @@
 "use client";
 
+import { useMemo } from "react";
 import CalendarGrid from "@/components/calendar/CalendarGrid";
-import { useSelectedTask } from "@/lib/context/selected-task-context";
-import { workspaceTasks } from "@/lib/data/global-tasks";
+import { openTask } from "@/redux/tasks/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 export default function CalendarPage() {
-  const { openTask } = useSelectedTask();
+  const dispatch = useAppDispatch();
+  const myTasks = useAppSelector((state) => state.tasks.myTasks);
 
-  const chips = workspaceTasks.map((t) => ({
-    id: t.id,
-    label: t.title,
-    date: t.dueDate,
-    onClick: () => openTask(t),
-  }));
+  const chips = useMemo(
+    () =>
+      myTasks
+        .filter((t) => t.dueDate !== null)
+        .map((t) => ({ id: t.id, label: t.title, date: t.dueDate!, onClick: () => dispatch(openTask(t.id)) })),
+    [myTasks, dispatch],
+  );
 
   return (
     <div className="page">

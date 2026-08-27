@@ -2,9 +2,12 @@
 
 import { Form, Input } from "antd";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
+import { registerRequest } from "@/redux/auth/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import AuthLayout from "./AuthLayout";
 
 interface RegisterFormValues {
@@ -19,7 +22,10 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterPage() {
   const router = useAppRouter();
+  const dispatch = useAppDispatch();
   const message = useMessage();
+  const { loading, isAuthenticated, error } = useAppSelector((state) => state.auth);
+  const [attempted, setAttempted] = useState(false);
   const {
     control,
     handleSubmit,
@@ -37,10 +43,33 @@ export default function RegisterPage() {
 
   const password = watch("password");
 
-  const onSubmit = () => {
-    message.success("Let's set up your workspace");
-    router.push("/onboarding");
+  const onSubmit = (values: RegisterFormValues) => {
+    setAttempted(true);
+    dispatch(registerRequest({ name: values.fullName, email: values.email, password: values.password }));
   };
+
+  // Same "wait for the saga to resolve" pattern as LoginPage.
+  useEffect(() => {
+    if (!attempted || loading) return;
+    if (isAuthenticated) {
+      message.success("Let's set up your workspace");
+      router.push("/onboarding");
+    } else if (error) {
+      message.error(error);
+    }
+    setAttempted(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempted, loading, isAuthenticated, error]);
+
+  // An already-authenticated visitor landing on /register directly (e.g.
+  // session restored from a prior visit) belongs in the app, not signing up
+  // again — send them to /dashboard rather than re-running onboarding.
+  useEffect(() => {
+    if (isAuthenticated && !attempted) {
+      router.push("/dashboard");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   return (
     <AuthLayout
@@ -65,7 +94,7 @@ export default function RegisterPage() {
             control={control}
             rules={{ required: "Full name is required" }}
             render={({ field }) => (
-              <Input {...field} placeholder="John Anderson" />
+              <Input {...field} placeholder="John Anderson" autoComplete="name" />
             )}
           />
         </Form.Item>
@@ -82,7 +111,7 @@ export default function RegisterPage() {
               pattern: { value: EMAIL_PATTERN, message: "Enter a valid email" },
             }}
             render={({ field }) => (
-              <Input {...field} placeholder="john@acme.dev" />
+              <Input {...field} placeholder="john@acme.dev" autoComplete="username" />
             )}
           />
         </Form.Item>
@@ -99,7 +128,7 @@ export default function RegisterPage() {
               minLength: { value: 8, message: "At least 8 characters" },
             }}
             render={({ field }) => (
-              <Input.Password {...field} placeholder="••••••••" />
+              <Input.Password {...field} placeholder="••••••••" autoComplete="new-password" />
             )}
           />
         </Form.Item>
@@ -116,7 +145,7 @@ export default function RegisterPage() {
               validate: (v) => v === password || "Passwords do not match",
             }}
             render={({ field }) => (
-              <Input.Password {...field} placeholder="••••••••" />
+              <Input.Password {...field} placeholder="••••••••" autoComplete="new-password" />
             )}
           />
         </Form.Item>

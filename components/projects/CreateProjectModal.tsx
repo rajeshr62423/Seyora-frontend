@@ -2,13 +2,14 @@
 
 import { DatePicker, Form, Input, Modal, Select } from "antd";
 import type { Dayjs } from "dayjs";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { useProjects } from "@/lib/context/projects-context";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
 import { scrollableModalStyles } from "@/lib/modal-styles";
 import { STATUS_LABEL } from "@/lib/status";
-import { useAppSelector } from "@/redux/hooks";
+import { closeCreateProjectModal, createProjectRequest } from "@/redux/projects/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import type { ProjectStatus } from "@/types/project";
 
 const { TextArea } = Input;
@@ -30,9 +31,12 @@ const DEFAULT_VALUES: CreateProjectFormFields = {
 };
 
 export default function CreateProjectModal() {
-  const { isCreateModalOpen, closeCreateModal, addProject } = useProjects();
+  const dispatch = useAppDispatch();
+  const { isCreateModalOpen, creating, createError, list } = useAppSelector((state) => state.projects);
   const usersState = useAppSelector((state) => state.users);
+  const router = useAppRouter();
   const message = useMessage();
+  const [attempted, setAttempted] = useState(false);
 
   const {
     control,
@@ -47,29 +51,48 @@ export default function CreateProjectModal() {
 
   const onSubmit = (values: CreateProjectFormFields) => {
     if (!values.status || !values.dueDate) return;
-    const team = usersState.list.filter((u) => values.team.includes(u.id));
-    const created = addProject(
-      {
+    setAttempted(true);
+    dispatch(
+      createProjectRequest({
         name: values.name,
         description: values.description,
         status: values.status,
         team: values.team,
         dueDate: values.dueDate.format("YYYY-MM-DD"),
-      },
-      team
+      }),
     );
-    message.success(`"${created.name}" was added to your projects`);
-    closeCreateModal();
   };
+
+  // Reacts once the saga resolves the dispatched create above — mirrors
+  // LoginPage.tsx's attempted-flag pattern. `list[0]` is the just-created
+  // project (the reducer prepends on success), used to navigate to its
+  // real server-assigned slug.
+  useEffect(() => {
+    if (!attempted || creating) return;
+    if (createError) {
+      message.error(createError);
+    } else {
+      const created = list[0];
+      if (created) {
+        message.success(`"${created.name}" was added to your projects`);
+        dispatch(closeCreateProjectModal());
+        router.push(`/projects/${created.slug}`);
+      }
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAttempted(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempted, creating, createError]);
 
   return (
     <Modal
       title="Create project"
       open={isCreateModalOpen}
-      onCancel={closeCreateModal}
+      onCancel={() => dispatch(closeCreateProjectModal())}
       onOk={handleSubmit(onSubmit)}
       okText="Create project"
       cancelText="Cancel"
+      confirmLoading={creating}
       destroyOnHidden
       centered
       styles={scrollableModalStyles}

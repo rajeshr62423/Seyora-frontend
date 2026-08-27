@@ -5,6 +5,7 @@ import { Folder, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { formatDisplayDate } from "@/lib/format";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
 import type { Project } from "@/types/project";
 import ProjectStatus from "./ProjectStatus";
@@ -12,6 +13,7 @@ import TeamAvatars from "./TeamAvatars";
 
 export default function ProjectCard({ project }: { project: Project }) {
   const message = useMessage();
+  const router = useAppRouter();
   const menuItems: MenuProps["items"] = [
     { key: "open", label: "Open project" },
     { key: "edit", label: "Edit project" },
@@ -21,8 +23,9 @@ export default function ProjectCard({ project }: { project: Project }) {
   const handleMenuClick: MenuProps["onClick"] = ({ key, domEvent }) => {
     domEvent.stopPropagation();
     domEvent.preventDefault();
-    if (key === "archive") message.success(`${project.name} archived`);
-    else message.info(`${project.name} · ${key === "open" ? "opening project" : "edit project"}`);
+    if (key === "archive") message.warning(`"${project.name}" archive requested`);
+    else if (key === "edit") router.push(`/projects/${project.slug}/settings`);
+    else router.push(`/projects/${project.slug}`);
   };
 
   return (

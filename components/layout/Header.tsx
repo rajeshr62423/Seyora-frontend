@@ -13,12 +13,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState, type KeyboardEvent } from "react";
-import { notifications } from "@/lib/data/notifications";
-import { useProjects } from "@/lib/context/projects-context";
+import { formatRelativeTime } from "@/lib/format";
 import { useTheme } from "@/lib/context/theme-context";
 import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
-import { useAppSelector } from "@/redux/hooks";
+import { openCreateProjectModal } from "@/redux/projects/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 interface HeaderProps {
   breadcrumb: string;
@@ -32,9 +32,10 @@ export default function Header({
   onOpenCommandPalette,
 }: HeaderProps) {
   const router = useAppRouter();
-  const { openCreateModal } = useProjects();
+  const dispatch = useAppDispatch();
   const { theme, toggleTheme } = useTheme();
   const authUser = useAppSelector((state) => state.auth.user);
+  const notifications = useAppSelector((state) => state.notifications.list);
   const [query, setQuery] = useState("");
   const message = useMessage();
 
@@ -50,11 +51,11 @@ export default function Header({
     <div style={{ width: 300 }}>
       {notifications.slice(0, 4).map((n) => (
         <div key={n.id} className="activity">
-          <span className="avatar">{n.actorInitials}</span>
+          <span className="avatar">{n.actor?.initials ?? <Bell size={12} />}</span>
           <div className="activity-text">
-            <strong>{n.actorName}</strong> {n.verb} {n.target}
+            <strong>{n.actor?.name ?? "System"}</strong> {n.verb} {n.target}
             <div className="activity-time">
-              {n.time}{" "}
+              {formatRelativeTime(n.createdAt)}{" "}
               {n.unread ? (
                 <span style={{ color: "#A7F3D0" }}>· unread</span>
               ) : null}
@@ -97,7 +98,7 @@ export default function Header({
         />
         <span className="kbd">Ctrl K</span>
       </div>
-      <button type="button" className="btn primary" onClick={openCreateModal}>
+      <button type="button" className="btn primary" onClick={() => dispatch(openCreateProjectModal())}>
         <Plus size={16} />
         <span>New</span>
       </button>

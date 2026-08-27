@@ -1,28 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo } from "react";
 import BarChart from "@/components/charts/BarChart";
 import Donut from "@/components/charts/Donut";
-import { useProjects } from "@/lib/context/projects-context";
-import { useAppSelector } from "@/redux/hooks";
+import type { AnalyticsRange } from "@/lib/api/analytics";
+import { fetchOverviewRequest, fetchTeamPerformanceRequest } from "@/redux/analytics/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import type { TaskStatus } from "@/types/task";
 
-const TREND = [32, 44, 39, 61, 57, 74, 68, 82, 76, 88, 79, 92].map((v, i) => ({ label: String(i + 1), value: v }));
-const RANGES = ["7 days", "30 days", "90 days"] as const;
+const RANGES: { label: string; value: AnalyticsRange }[] = [
+  { label: "7 days", value: 7 },
+  { label: "30 days", value: 30 },
+  { label: "90 days", value: 90 },
+];
+
+const STATUS_COLOR: Record<TaskStatus, string> = {
+  DONE: "#4ADE80",
+  IN_REVIEW: "#A7F3D0",
+  IN_PROGRESS: "#2DD4BF",
+  TODO: "#94A3B8",
+  BACKLOG: "#64748B",
+};
+const STATUS_LABEL: Record<TaskStatus, string> = {
+  DONE: "Done",
+  IN_REVIEW: "In Review",
+  IN_PROGRESS: "In Progress",
+  TODO: "Todo",
+  BACKLOG: "Backlog",
+};
 
 export default function AnalyticsPage() {
-  const { projects } = useProjects();
-  const users = useAppSelector((state) => state.users.list);
-  const [range, setRange] = useState<(typeof RANGES)[number]>("30 days");
+  const dispatch = useAppDispatch();
+  const { overview, range, overviewLoading, teamPerformance, teamPerformanceLoading } = useAppSelector(
+    (state) => state.analytics,
+  );
 
-  const totalTasks = projects.reduce((s, p) => s + p.taskCount, 0);
-  const avgCompletion = projects.length ? Math.round(projects.reduce((s, p) => s + p.progress, 0) / projects.length) : 0;
+  useEffect(() => {
+    dispatch(fetchOverviewRequest(30));
+    dispatch(fetchTeamPerformanceRequest());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const totalTasks = overview ? Object.values(overview.tasksByStatus).reduce((s, n) => s + n, 0) : 0;
 
   const kpis = [
-    { label: "Completion rate", value: `${avgCompletion}%`, trend: "+7.2% vs previous" },
-    { label: "Velocity", value: "38 pts", trend: "+12% vs previous" },
-    { label: "Avg. completion", value: "2.8d", trend: "-0.4d vs previous" },
-    { label: "Overdue tasks", value: "14", trend: "-5 vs previous" },
+    { label: "Completion rate", value: overview ? `${overview.completionRate}%` : "—" },
+    { label: "Total tasks", value: overview ? String(totalTasks) : "—" },
+    { label: "Completed", value: overview ? String(overview.tasksByStatus.DONE) : "—" },
+    { label: "Overdue tasks", value: overview ? String(overview.overdueCount) : "—" },
   ];
+
+  const trendData = useMemo(
+    () => overview?.completionTrend.map((point) => ({ label: point.date.slice(5), value: point.completed })) ?? [],
+    [overview],
+  );
+
+  const statusSegments = useMemo(
+    () =>
+      overview
+        ? (Object.keys(overview.tasksByStatus) as TaskStatus[]).map((status) => ({
+            label: STATUS_LABEL[status],
+            value: overview.tasksByStatus[status],
+            color: STATUS_COLOR[status],
+          }))
+        : [],
+    [overview],
+  );
+
+  const maxOpenTasks = Math.max(1, ...teamPerformance.map((m) => m.openTasks));
 
   return (
     <div className="page">
@@ -34,12 +79,12 @@ export default function AnalyticsPage() {
         <div className="actions">
           {RANGES.map((r) => (
             <button
-              key={r}
+              key={r.value}
               type="button"
-              className={`btn ${range === r ? "primary" : ""}`}
-              onClick={() => setRange(r)}
+              className={`btn ${range === r.value ? "primary" : ""}`}
+              onClick={() => dispatch(fetchOverviewRequest(r.value))}
             >
-              {r}
+              {r.label}
             </button>
           ))}
         </div>
@@ -50,7 +95,6 @@ export default function AnalyticsPage() {
           <div key={k.label} className="card kpi">
             <span className="kpi-label">{k.label}</span>
             <div className="kpi-value">{k.value}</div>
-            <div className="trend up">{k.trend}</div>
           </div>
         ))}
       </div>
@@ -61,7 +105,13 @@ export default function AnalyticsPage() {
             <span className="card-title">Task completion trend</span>
           </div>
           <div className="panel-body">
-            <BarChart data={TREND} />
+            {overviewLoading && !overview ? (
+              <div className="empty">
+                <strong>Loading…</strong>
+              </div>
+            ) : (
+              <BarChart data={trendData} />
+            )}
           </div>
         </div>
         <div className="card">
@@ -69,15 +119,13 @@ export default function AnalyticsPage() {
             <span className="card-title">Status distribution</span>
           </div>
           <div className="panel-body">
-            <Donut
-              centerLabel={String(totalTasks)}
-              segments={[
-                { label: "Done", value: Math.round(totalTasks * 0.62), color: "#4ADE80" },
-                { label: "In Progress", value: Math.round(totalTasks * 0.19), color: "#2DD4BF" },
-                { label: "In Review", value: Math.round(totalTasks * 0.11), color: "#A7F3D0" },
-                { label: "Todo", value: Math.round(totalTasks * 0.08), color: "#94A3B8" },
-              ]}
-            />
+            {overviewLoading && !overview ? (
+              <div className="empty">
+                <strong>Loading…</strong>
+              </div>
+            ) : (
+              <Donut centerLabel={String(totalTasks)} segments={statusSegments} />
+            )}
           </div>
         </div>
       </div>
@@ -94,38 +142,34 @@ export default function AnalyticsPage() {
                 <th>Assigned</th>
                 <th>Completed</th>
                 <th>Completion rate</th>
-                <th>Avg. time</th>
                 <th>Workload</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((u, i) => {
-                const memberProjects = projects.filter((p) => p.team.some((m) => m.id === u.id));
-                const assigned = memberProjects.reduce((s, p) => s + Math.max(1, Math.round(p.taskCount / p.team.length)), 0);
-                const completed = Math.round(assigned * 0.82);
-                const workload = memberProjects.length
-                  ? Math.round(memberProjects.reduce((s, p) => s + p.progress, 0) / memberProjects.length)
-                  : 0;
-                return (
-                  <tr key={u.id}>
+              {teamPerformanceLoading && teamPerformance.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>Loading…</td>
+                </tr>
+              ) : (
+                teamPerformance.map((m) => (
+                  <tr key={m.userId}>
                     <td>
                       <span style={{ display: "flex", gap: 7, alignItems: "center" }}>
-                        <span className="avatar">{u.initials}</span>
-                        {u.name}
+                        <span className="avatar">{m.initials}</span>
+                        {m.name}
                       </span>
                     </td>
-                    <td>{assigned}</td>
-                    <td>{completed}</td>
-                    <td>{assigned ? Math.round((completed / assigned) * 100) : 0}%</td>
-                    <td>{(1.8 + i * 0.3).toFixed(1)}d</td>
+                    <td>{m.assigned}</td>
+                    <td>{m.completed}</td>
+                    <td>{m.completionRate}%</td>
                     <td>
                       <div className="progress" style={{ width: 120 }}>
-                        <span style={{ width: `${workload}%` }} />
+                        <span style={{ width: `${Math.round((m.openTasks / maxOpenTasks) * 100)}%` }} />
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              )}
             </tbody>
           </table>
         </div>

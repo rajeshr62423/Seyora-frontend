@@ -2,14 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { Search, UserPlus, Users as UsersIcon } from "lucide-react";
-import { useProjects } from "@/lib/context/projects-context";
 import { useMessage } from "@/lib/hooks/use-message";
 import { useAppSelector } from "@/redux/hooks";
 import UserCard from "./UserCard";
 
 export default function UsersPage() {
   const { list: users, loading } = useAppSelector((state) => state.users);
-  const { projects } = useProjects();
+  const projects = useAppSelector((state) => state.projects.list);
   const message = useMessage();
   const [query, setQuery] = useState("");
 
