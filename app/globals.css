@@ -603,9 +603,14 @@ a {
 
 /* Page layout */
 .page {
-  padding: 30px 32px 50px;
+  padding: 32px 32px 50px;
   max-width: 1600px;
-  margin: auto;
+  /* Horizontal centering only — .page is a flex child of .main
+     (display: flex; flex-direction: column), so a bare `margin: auto`
+     also sets top/bottom to auto, which centers it VERTICALLY in .main's
+     leftover height (min-height: 100vh) on any page short enough to leave
+     free space. Only `0 auto` avoids that. */
+  margin: 0 auto;
   width: 100%;
 }
 .page-head {
@@ -613,7 +618,7 @@ a {
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 .eyebrow {

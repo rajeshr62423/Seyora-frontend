@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import AppShell from "@/components/layout/AppShell";
+import AcceptInvitationPage from "@/components/auth/AcceptInvitationPage";
 import DashboardPage from "@/components/dashboard/DashboardPage";
 import ProjectActivityPage from "@/components/projects/ProjectActivityPage";
 import ProjectBoardPage from "@/components/projects/ProjectBoardPage";
@@ -11,6 +12,7 @@ import ProjectTasksPage from "@/components/projects/ProjectTasksPage";
 import ProjectsPage from "@/components/projects/ProjectsPage";
 import CalendarPage from "@/components/calendar/CalendarPage";
 import MyTasksPage from "@/components/tasks/MyTasksPage";
+import TaskDetailPage from "@/components/tasks/TaskDetailPage";
 import AnalyticsPage from "@/components/analytics/AnalyticsPage";
 import ActivityPage from "@/components/activity/ActivityPage";
 import NotificationsPage from "@/components/notifications/NotificationsPage";
@@ -37,7 +39,14 @@ const STANDALONE_ROUTES: Record<string, ReactNode> = {
   login: <LoginPage />,
   register: <RegisterPage />,
   "forgot-password": <ForgotPasswordPage />,
-  "reset-password": <ResetPasswordPage />,
+  // Reads ?token= via useSearchParams(), which requires a Suspense boundary
+  // for static generation — same reasoning as the invitations/accept route
+  // below.
+  "reset-password": (
+    <Suspense fallback={null}>
+      <ResetPasswordPage />
+    </Suspense>
+  ),
   "verify-email": <VerifyEmailPage />,
   "2fa": <TwoFactorPage />,
   onboarding: <OnboardingPage />,
@@ -66,7 +75,11 @@ function resolveAppContent(slug: string[]): ReactNode {
     return null;
   }
 
-  if (first === "tasks" && !second) return <MyTasksPage />;
+  if (first === "tasks") {
+    if (!second) return <MyTasksPage />;
+    if (!third) return <TaskDetailPage code={second} />;
+    return null;
+  }
   if (first === "calendar" && !second) return <CalendarPage />;
   if (first === "analytics" && !second) return <AnalyticsPage />;
   if (first === "activity" && !second) return <ActivityPage />;
@@ -92,10 +105,21 @@ function resolveAppContent(slug: string[]): ReactNode {
 
 export default async function CatchAllPage({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
-  const [first] = slug;
+  const [first, second] = slug;
 
   if (first in STANDALONE_ROUTES && slug.length === 1) {
     return STANDALONE_ROUTES[first];
+  }
+
+  // Where the invitation email's "Accept Invitation" button links —
+  // deliberately standalone (no AppShell), same as the rest of the auth
+  // flow, since the visitor isn't a member of any organization yet.
+  if (first === "invitations" && second === "accept" && slug.length === 2) {
+    return (
+      <Suspense fallback={null}>
+        <AcceptInvitationPage />
+      </Suspense>
+    );
   }
 
   const content = resolveAppContent(slug);

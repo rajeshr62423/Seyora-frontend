@@ -5,13 +5,16 @@ import { Filter } from "lucide-react";
 import { useMemo, useState } from "react";
 import ActivityFeed from "@/components/activity/ActivityFeed";
 import { useMessage } from "@/lib/hooks/use-message";
-import { useAppSelector } from "@/redux/hooks";
+import { fetchMoreActivityRequest } from "@/redux/activity/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 export default function ActivityPage() {
+  const dispatch = useAppDispatch();
   const message = useMessage();
-  const { items, loading } = useAppSelector((state) => state.activity);
-  const users = useAppSelector((state) => state.users.list);
+  const { items, loading, loadingMore, total } = useAppSelector((state) => state.activity);
+  const members = useAppSelector((state) => state.organization.members);
   const [actorId, setActorId] = useState<string | null>(null);
+  const hasMore = items.length < total;
 
   // Client-side only — never re-fetches into (or otherwise mutates)
   // state.activity.items, which ProjectActivityPage/AuditLogsTab/
@@ -43,7 +46,7 @@ export default function ActivityPage() {
               style={{ width: 180 }}
               value={actorId ?? undefined}
               onChange={(value) => setActorId(value ?? null)}
-              options={users.map((u) => ({ value: u.id, label: u.name }))}
+              options={members.map((m) => ({ value: m.user.id, label: m.user.name }))}
             />
             <button type="button" className="btn" onClick={() => message.success("Export started")}>
               Export
@@ -59,6 +62,18 @@ export default function ActivityPage() {
             <ActivityFeed entries={filtered} />
           )}
         </div>
+        {hasMore ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: "14px 0 4px" }}>
+            <button
+              type="button"
+              className="btn"
+              disabled={loadingMore}
+              onClick={() => dispatch(fetchMoreActivityRequest())}
+            >
+              {loadingMore ? "Loading…" : "Load more"}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

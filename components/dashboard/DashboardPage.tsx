@@ -10,11 +10,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
+import Avatar from "@/components/common/Avatar";
 import BarChart from "@/components/charts/BarChart";
 import Donut from "@/components/charts/Donut";
 import { formatDisplayDate, formatRelativeTime } from "@/lib/format";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { openCreateProjectModal } from "@/redux/projects/action";
-import { openTask } from "@/redux/tasks/action";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 const PRIORITY_WEEK = [
@@ -27,12 +28,24 @@ const PRIORITY_WEEK = [
   { label: "S", value: 55 },
 ];
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const projects = useAppSelector((state) => state.projects.list);
-  const users = useAppSelector((state) => state.users.list);
+  const members = useAppSelector((state) => state.organization.members);
+  const users = useMemo(() => members.map((m) => m.user), [members]);
   const myTasks = useAppSelector((state) => state.tasks.myTasks);
   const recentActivity = useAppSelector((state) => state.activity.items);
+  const authUser = useAppSelector((state) => state.auth.user);
+  const organization = useAppSelector((state) => state.organization.current);
+  const firstName = authUser?.name?.split(" ")[0] ?? "there";
 
   const totals = useMemo(() => {
     const totalTasks = projects.reduce((sum, p) => sum + p.taskCount, 0);
@@ -118,9 +131,11 @@ export default function DashboardPage() {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1 className="page-title">Good morning, John 👋</h1>
+          <h1 className="page-title">
+            {getGreeting()}, {firstName} 👋
+          </h1>
           <div className="page-sub">
-            Here&rsquo;s what&rsquo;s happening across Chola Technology today.
+            Here&rsquo;s what&rsquo;s happening across {organization?.name ?? "your workspace"} today.
           </div>
         </div>
         <div className="actions">
@@ -238,7 +253,7 @@ export default function DashboardPage() {
                     marginBottom: 13,
                   }}
                 >
-                  <span className="avatar">{u.initials}</span>
+                  <Avatar url={u.avatarUrl} initials={u.initials} />
                   <span style={{ fontSize: 10, minWidth: 92 }}>
                     {u.name.split(" ")[0]}
                   </span>
@@ -261,7 +276,7 @@ export default function DashboardPage() {
           <div className="panel-body">
             {recentActivity.slice(0, 4).map((a) => (
               <div key={a.id} className="activity">
-                <span className="avatar">{a.actor.initials}</span>
+                <Avatar url={a.actor.avatarUrl} initials={a.actor.initials} />
                 <div className="activity-text">
                   <strong>{a.actor.name}</strong> {a.action}
                   <div className="activity-time">{formatRelativeTime(a.createdAt)}</div>
@@ -280,7 +295,7 @@ export default function DashboardPage() {
               <div
                 key={t.id}
                 className="list-row"
-                onClick={() => dispatch(openTask(t.id))}
+                onClick={() => router.push(`/tasks/${t.code}`)}
                 style={{ cursor: "pointer" }}
               >
                 <div className="project-icon" style={{ width: 34, height: 34 }}>

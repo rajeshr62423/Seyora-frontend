@@ -41,6 +41,16 @@ export function formatRelativeTime(iso: string, reference: Date = new Date()): s
   return formatDisplayDate(iso.slice(0, 10));
 }
 
+// Full ISO datetime -> "Aug 28, 2026 at 12:30 PM". For contexts that need
+// the exact moment (task activity timeline), not a relative time or a
+// bare date.
+export function formatExactDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return `${formatDisplayDateFull(iso.slice(0, 10))} at ${time}`;
+}
+
 // Matches seyora-backend's src/common/utils/initials.ts algorithm — the
 // backend only computes this for auth responses (AuthUser), so anything
 // coming from /users, /organizations/me/members, project owners/members

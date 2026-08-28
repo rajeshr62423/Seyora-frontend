@@ -4,6 +4,11 @@ export interface SettingsTabDef {
   slug: string;
   label: string;
   icon: typeof User;
+  // UI-visibility only — hides the tab (and blocks direct navigation to
+  // its URL) when the caller's role doesn't grant this permission. Same
+  // pattern as Sidebar.tsx's NAV_ITEMS; the backend enforces the real
+  // check on any route the tab's actions call regardless of this.
+  permission?: string;
 }
 
 export const SETTINGS_TABS: SettingsTabDef[] = [
@@ -17,7 +22,7 @@ export const SETTINGS_TABS: SettingsTabDef[] = [
   { slug: "webhooks", label: "Webhooks", icon: Plug },
   { slug: "billing", label: "Billing", icon: CreditCard },
   { slug: "audit-logs", label: "Audit Logs", icon: Activity },
-  { slug: "danger-zone", label: "Danger Zone", icon: ShieldAlert },
+  { slug: "danger-zone", label: "Danger Zone", icon: ShieldAlert, permission: "ORG_DELETE" },
 ];
 
 export const SETTINGS_SLUGS = SETTINGS_TABS.map((t) => t.slug);

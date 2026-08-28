@@ -16,6 +16,7 @@ interface ApiTeamPerformanceRow {
   userId: number;
   name: string;
   initials: string;
+  avatarUrl: string | null;
   assigned: number;
   completed: number;
   openTasks: number;
@@ -26,6 +27,7 @@ export interface TeamPerformanceRow {
   userId: string;
   name: string;
   initials: string;
+  avatarUrl: string | null;
   assigned: number;
   completed: number;
   openTasks: number;

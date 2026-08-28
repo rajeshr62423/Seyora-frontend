@@ -1,5 +1,14 @@
 import type { ProjectStatus } from "@/types/project";
+import type { OrgRole } from "@/types/organization";
 import type { TaskPriority, TaskStatus } from "@/types/task";
+
+export const ORG_ROLE_LABEL: Record<OrgRole, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MANAGER: "Manager",
+  MEMBER: "Member",
+  VIEWER: "Viewer",
+};
 
 export const STATUS_LABEL: Record<ProjectStatus, string> = {
   IN_PROGRESS: "In Progress",

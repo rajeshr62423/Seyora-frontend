@@ -9,21 +9,25 @@ import {
   ADD_SUBTASK_REQUEST,
   ADD_SUBTASK_SUCCESS,
   CLOSE_CREATE_TASK_MODAL,
-  CLOSE_TASK,
   CREATE_TASK_FAILURE,
   CREATE_TASK_REQUEST,
   CREATE_TASK_SUCCESS,
   DELETE_SUBTASK_FAILURE,
   DELETE_SUBTASK_REQUEST,
   DELETE_SUBTASK_SUCCESS,
+  DELETE_TASK_FAILURE,
+  DELETE_TASK_REQUEST,
+  DELETE_TASK_SUCCESS,
   FETCH_MY_TASKS_FAILURE,
   FETCH_MY_TASKS_REQUEST,
   FETCH_MY_TASKS_SUCCESS,
   FETCH_PROJECT_TASKS_FAILURE,
   FETCH_PROJECT_TASKS_REQUEST,
   FETCH_PROJECT_TASKS_SUCCESS,
+  FETCH_TASK_BY_CODE_FAILURE,
+  FETCH_TASK_BY_CODE_REQUEST,
+  FETCH_TASK_BY_CODE_SUCCESS,
   OPEN_CREATE_TASK_MODAL,
-  OPEN_TASK,
   UPDATE_SUBTASK_FAILURE,
   UPDATE_SUBTASK_REQUEST,
   UPDATE_SUBTASK_SUCCESS,
@@ -55,17 +59,26 @@ const initialState: TasksState = {
   commentSending: false,
   commentError: null,
 
-  selectedTaskId: null,
+  taskDetail: null,
+  taskDetailCode: null,
+  taskDetailLoading: false,
+  taskDetailError: null,
+
+  deletingTask: false,
+  deleteTaskError: null,
 };
 
-// A task can be present in both `projectTasks` and `myTasks` at once
-// (assigned-to-me task in the currently-viewed project). Every mutation
-// patches whichever array(s) currently hold a matching id, rather than a
-// full normalized store — two flat arrays don't warrant that machinery.
+// A task can be present in projectTasks, myTasks, and taskDetail all at
+// once (assigned-to-me task, in the currently-viewed project's board, AND
+// the one you're currently looking at on its own /tasks/:code page).
+// Every mutation patches whichever of the three currently hold a matching
+// id, rather than a full normalized store — three flat/single slots don't
+// warrant that machinery.
 function patchTaskInLists(state: TasksState, taskId: string, updater: (task: Task) => Task): Partial<TasksState> {
   return {
     projectTasks: state.projectTasks.map((t) => (t.id === taskId ? updater(t) : t)),
     myTasks: state.myTasks.map((t) => (t.id === taskId ? updater(t) : t)),
+    taskDetail: state.taskDetail && state.taskDetail.id === taskId ? updater(state.taskDetail) : state.taskDetail,
   };
 }
 
@@ -191,10 +204,44 @@ export function tasksReducer(state: TasksState = initialState, rawAction: Unknow
     case ADD_COMMENT_FAILURE:
       return { ...state, commentSending: false, commentError: action.payload };
 
-    case OPEN_TASK:
-      return { ...state, selectedTaskId: action.payload };
-    case CLOSE_TASK:
-      return { ...state, selectedTaskId: null };
+    case FETCH_TASK_BY_CODE_REQUEST:
+      return { ...state, taskDetailLoading: true, taskDetailError: null };
+    case FETCH_TASK_BY_CODE_SUCCESS:
+      return {
+        ...state,
+        taskDetailLoading: false,
+        taskDetail: action.payload,
+        taskDetailCode: action.payload.code,
+      };
+    case FETCH_TASK_BY_CODE_FAILURE:
+      // Clear any stale task so navigating from one bad code to another
+      // (or a code that no longer exists after deletion) doesn't leave the
+      // previous task lingering on screen. taskDetailCode is set here too
+      // (not just on success) — otherwise `stale` in use-task-by-code.ts
+      // would never clear on a 404, leaving the page stuck "loading"
+      // forever instead of resolving to a real not-found state.
+      return {
+        ...state,
+        taskDetailLoading: false,
+        taskDetailError: action.payload.message,
+        taskDetailCode: action.payload.code,
+        taskDetail: null,
+      };
+
+    case DELETE_TASK_REQUEST:
+      return { ...state, deletingTask: true, deleteTaskError: null };
+    case DELETE_TASK_SUCCESS: {
+      const { id } = action.payload;
+      return {
+        ...state,
+        deletingTask: false,
+        projectTasks: state.projectTasks.filter((t) => t.id !== id),
+        myTasks: state.myTasks.filter((t) => t.id !== id),
+        taskDetail: state.taskDetail && state.taskDetail.id === id ? null : state.taskDetail,
+      };
+    }
+    case DELETE_TASK_FAILURE:
+      return { ...state, deletingTask: false, deleteTaskError: action.payload };
 
     case OPEN_CREATE_TASK_MODAL:
       return { ...state, createTaskContext: action.payload, createError: null };

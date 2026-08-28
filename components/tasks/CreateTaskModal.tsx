@@ -33,9 +33,11 @@ const DEFAULT_VALUES: CreateTaskFormFields = {
 
 export default function CreateTaskModal() {
   const dispatch = useAppDispatch();
-  const { createTaskContext, creating, createError } = useAppSelector((state) => state.tasks);
+  const { createTaskContext, creating, createError } = useAppSelector(
+    (state) => state.tasks,
+  );
   const projects = useAppSelector((state) => state.projects.list);
-  const usersState = useAppSelector((state) => state.users);
+  const organizationState = useAppSelector((state) => state.organization);
   const message = useMessage();
   const [attempted, setAttempted] = useState(false);
   const open = createTaskContext !== null;
@@ -46,7 +48,10 @@ export default function CreateTaskModal() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<CreateTaskFormFields>({ defaultValues: DEFAULT_VALUES, mode: "onSubmit" });
+  } = useForm<CreateTaskFormFields>({
+    defaultValues: DEFAULT_VALUES,
+    mode: "onSubmit",
+  });
 
   useEffect(() => {
     if (!open) reset(DEFAULT_VALUES);
@@ -79,7 +84,9 @@ export default function CreateTaskModal() {
           description: values.description,
           priority: values.priority,
           assigneeId: values.assigneeId,
-          dueDate: values.dueDate ? values.dueDate.format("YYYY-MM-DD") : undefined,
+          dueDate: values.dueDate
+            ? values.dueDate.format("YYYY-MM-DD")
+            : undefined,
         },
       }),
     );
@@ -98,7 +105,12 @@ export default function CreateTaskModal() {
       centered
       styles={scrollableModalStyles}
     >
-      <Form layout="vertical" onFinish={handleSubmit(onSubmit)} className="card-pad" style={{ padding: "4px 0 0" }}>
+      <Form
+        layout="vertical"
+        onFinish={handleSubmit(onSubmit)}
+        className="card-pad"
+        style={{ padding: "4px 0 0" }}
+      >
         {!presetProjectId ? (
           <Form.Item
             label="Project"
@@ -114,7 +126,10 @@ export default function CreateTaskModal() {
                 <Select
                   {...field}
                   placeholder="Select a project"
-                  options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                  options={projects.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                  }))}
                 />
               )}
             />
@@ -131,7 +146,9 @@ export default function CreateTaskModal() {
             name="title"
             control={control}
             rules={{ required: "Task title is required" }}
-            render={({ field }) => <Input {...field} placeholder="e.g. Fix login redirect" />}
+            render={({ field }) => (
+              <Input {...field} placeholder="e.g. Fix login redirect" />
+            )}
           />
         </Form.Item>
 
@@ -139,7 +156,13 @@ export default function CreateTaskModal() {
           <Controller
             name="description"
             control={control}
-            render={({ field }) => <TextArea {...field} rows={3} placeholder="What needs to be done?" />}
+            render={({ field }) => (
+              <TextArea
+                {...field}
+                rows={3}
+                placeholder="What needs to be done?"
+              />
+            )}
           />
         </Form.Item>
 
@@ -156,7 +179,9 @@ export default function CreateTaskModal() {
             render={({ field }) => (
               <Select
                 {...field}
-                options={(Object.keys(TASK_PRIORITY_LABEL) as TaskPriority[]).map((value) => ({
+                options={(
+                  Object.keys(TASK_PRIORITY_LABEL) as TaskPriority[]
+                ).map((value) => ({
                   value,
                   label: TASK_PRIORITY_LABEL[value],
                 }))}
@@ -174,8 +199,11 @@ export default function CreateTaskModal() {
                 {...field}
                 allowClear
                 placeholder="Unassigned"
-                loading={usersState.loading}
-                options={usersState.list.map((u) => ({ value: u.id, label: u.name }))}
+                loading={organizationState.membersLoading}
+                options={organizationState.members.map((m) => ({
+                  value: m.user.id,
+                  label: m.user.name,
+                }))}
               />
             )}
           />
@@ -185,7 +213,9 @@ export default function CreateTaskModal() {
           <Controller
             name="dueDate"
             control={control}
-            render={({ field }) => <DatePicker {...field} style={{ width: "100%" }} />}
+            render={({ field }) => (
+              <DatePicker {...field} style={{ width: "100%" }} />
+            )}
           />
         </Form.Item>
       </Form>

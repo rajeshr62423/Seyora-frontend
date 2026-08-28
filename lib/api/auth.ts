@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   role: string;
   initials: string;
+  avatarUrl: string | null;
 }
 
 export interface AuthTokens {
@@ -30,6 +31,12 @@ export interface LoginInput {
   password: string;
 }
 
+export interface ResetPasswordInput {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
 export function registerRequest(input: RegisterInput): Promise<AuthResponse> {
   return apiFetch<AuthResponse>("/auth/register", {
     method: "POST",
@@ -48,4 +55,23 @@ export function loginRequest(input: LoginInput): Promise<AuthResponse> {
 
 export function meRequest(): Promise<AuthUser> {
   return apiFetch<AuthUser>("/auth/me", { method: "GET" });
+}
+
+// Always resolves — the backend returns the same 200 whether or not the
+// email is registered, so the caller can never use this to enumerate
+// accounts. Never throws for "email not found".
+export function forgotPasswordRequest(email: string): Promise<void> {
+  return apiFetch<void>("/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+    skipAuth: true,
+  });
+}
+
+export function resetPasswordRequest(input: ResetPasswordInput): Promise<void> {
+  return apiFetch<void>("/auth/reset-password", {
+    method: "POST",
+    body: input,
+    skipAuth: true,
+  });
 }

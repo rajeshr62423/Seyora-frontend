@@ -3,11 +3,13 @@
 import { notFound } from "next/navigation";
 import { Calendar, MessageSquare, Plus } from "lucide-react";
 import { useMemo, useState, type DragEvent } from "react";
+import Avatar from "@/components/common/Avatar";
 import { formatDisplayDate } from "@/lib/format";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useProjectBySlug } from "@/lib/hooks/use-project-by-slug";
 import { useProjectTasks } from "@/lib/hooks/use-project-tasks";
 import { TASK_PRIORITY_BADGE_CLASS, TASK_STATUS_LABEL, TASK_STATUSES } from "@/lib/status";
-import { openCreateTaskModal, openTask, updateTaskRequest } from "@/redux/tasks/action";
+import { openCreateTaskModal, updateTaskRequest } from "@/redux/tasks/action";
 import { useAppDispatch } from "@/redux/hooks";
 import type { Task, TaskStatus } from "@/types/task";
 import ProjectHeaderCard from "./ProjectHeaderCard";
@@ -20,6 +22,7 @@ function groupByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
 
 export default function ProjectBoardPage({ slug }: { slug: string }) {
   const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const { project, loading: projectLoading } = useProjectBySlug(slug);
   const { tasks, loading: tasksLoading } = useProjectTasks(project?.id);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -74,7 +77,7 @@ export default function ProjectBoardPage({ slug }: { slug: string }) {
                       setDraggingId(task.id);
                     }}
                     onDragEnd={() => setDraggingId(null)}
-                    onClick={() => dispatch(openTask(task.id))}
+                    onClick={() => router.push(`/tasks/${task.code}`)}
                   >
                     <div className="tiny muted">{task.code}</div>
                     <div className="task-card-title">{task.title}</div>
@@ -86,7 +89,7 @@ export default function ProjectBoardPage({ slug }: { slug: string }) {
                         <Calendar size={12} /> {task.dueDate ? formatDisplayDate(task.dueDate) : "No due date"}
                       </span>
                       <span className="avatar-stack">
-                        <span className="avatar">{task.assignee?.initials ?? "—"}</span>
+                        <Avatar url={task.assignee?.avatarUrl} initials={task.assignee?.initials ?? "—"} />
                       </span>
                       <span className="mini-icon">
                         <MessageSquare size={12} /> {task.comments.length}

@@ -1,9 +1,12 @@
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import Avatar from "@/components/common/Avatar";
+import { ORG_ROLE_LABEL } from "@/lib/status";
 import type { Project } from "@/types/project";
+import type { OrgRole } from "@/types/organization";
 import type { User } from "@/types/user";
 
-export default function UserCard({ user, projects }: { user: User; projects: Project[] }) {
+export default function UserCard({ user, role, projects }: { user: User; role: OrgRole; projects: Project[] }) {
   const memberProjects = projects.filter((p) => p.team.some((m) => m.id === user.id));
   const assigned = memberProjects.reduce((sum, p) => sum + Math.max(1, Math.round(p.taskCount / p.team.length)), 0);
   const avgProgress = memberProjects.length
@@ -13,12 +16,12 @@ export default function UserCard({ user, projects }: { user: User; projects: Pro
   return (
     <div className="card member-card">
       <div className="member-head">
-        <span className="avatar">{user.initials}</span>
+        <Avatar url={user.avatarUrl} initials={user.initials} />
         <div style={{ minWidth: 0 }}>
           <strong>{user.name}</strong>
           <div className="member-role">
             <span className="presence" />
-            {user.role}
+            {ORG_ROLE_LABEL[role]}
           </div>
         </div>
         <Link href={`/users/${user.id}`} className="icon-btn" style={{ width: 30, height: 30, marginLeft: "auto" }} aria-label="View profile">

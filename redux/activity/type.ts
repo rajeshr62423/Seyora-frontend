@@ -7,4 +7,11 @@ export interface ActivityState {
   total: number;
   loading: boolean;
   error: string | null;
+  loadingMore: boolean;
+  loadMoreError: string | null;
+
+  taskActivityItems: ActivityEntry[];
+  taskActivityTaskId: string | null;
+  taskActivityLoading: boolean;
+  taskActivityError: string | null;
 }

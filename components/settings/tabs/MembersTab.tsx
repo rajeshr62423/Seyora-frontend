@@ -3,6 +3,7 @@
 import { Input, Select } from "antd";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import Avatar from "@/components/common/Avatar";
 import { useMessage } from "@/lib/hooks/use-message";
 import { createInvitationsRequest, updateMemberRoleRequest } from "@/redux/organization/action";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -14,6 +15,7 @@ const ROLE_OPTIONS: { value: OrgRole; label: string }[] = [
   { value: "ADMIN", label: "Admin" },
   { value: "MANAGER", label: "Manager" },
   { value: "MEMBER", label: "Member" },
+  { value: "VIEWER", label: "Viewer" },
 ];
 
 export default function MembersTab() {
@@ -102,7 +104,7 @@ export default function MembersTab() {
               <tr key={member.id}>
                 <td>
                   <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span className="avatar">{member.user.initials}</span>
+                    <Avatar url={member.user.avatarUrl} initials={member.user.initials} />
                     {member.user.name}
                   </span>
                 </td>

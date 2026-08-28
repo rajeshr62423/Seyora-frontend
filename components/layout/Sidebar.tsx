@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAppSelector } from "@/redux/hooks";
+import Avatar from "@/components/common/Avatar";
+import { ORG_ROLE_LABEL } from "@/lib/status";
 import BrandLogo from "./BrandLogo";
 
 interface NavItem {
@@ -25,7 +27,10 @@ interface NavItem {
   label: string;
   href: string;
   icon: typeof Folder;
-  badge?: number;
+  // UI-visibility only — hides the item when the caller's role doesn't
+  // grant this permission. The backend enforces the real check on every
+  // route the item links to regardless of whether it's shown here.
+  permission?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -51,11 +56,10 @@ const NAV_ITEMS: NavItem[] = [
     label: "Notifications",
     href: "/notifications",
     icon: Bell,
-    badge: 3,
   },
   { label: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Integrations", href: "/integrations", icon: Plug },
-  { label: "Settings", href: "/settings/profile", icon: Settings },
+  { label: "Settings", href: "/settings/profile", icon: Settings, permission: "SETTINGS_VIEW" },
 ];
 
 interface SidebarProps {
@@ -72,8 +76,17 @@ export default function Sidebar({
   variant = "desktop",
 }: SidebarProps) {
   const authUser = useAppSelector((state) => state.auth.user);
+  const organization = useAppSelector((state) => state.organization.current);
+  const myRole = useAppSelector((state) => state.organization.myRole);
+  const myPermissions = useAppSelector((state) => state.organization.myPermissions);
+  const unreadCount = useAppSelector(
+    (state) => state.notifications.list.filter((n) => n.unread).length,
+  );
   const isDrawer = variant === "drawer";
   const isCollapsed = collapsed && !isDrawer;
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => !item.permission || myPermissions.includes(item.permission),
+  );
 
   return (
     <aside className={`sidebar ${isCollapsed ? "collapsed" : ""}`}>
@@ -95,18 +108,23 @@ export default function Sidebar({
       </div>
 
       <div className="org-switch">
-        <span className="org-dot">A</span>
-        <span className="org-name org-text">Chola Technology</span>
+        <Avatar
+          url={organization?.logoUrl}
+          initials={organization?.name?.[0]?.toUpperCase() ?? "S"}
+          className="org-dot"
+        />
+        <span className="org-name org-text">{organization?.name ?? "Seyora"}</span>
         <span className="chev">
           <ChevronsUpDown size={14} />
         </span>
       </div>
 
       <nav className="nav">
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
+          const badge = item.href === "/notifications" ? unreadCount : 0;
           return (
             <div key={item.href}>
               {item.section ? (
@@ -119,9 +137,7 @@ export default function Sidebar({
               >
                 <Icon size={18} strokeWidth={1.8} />
                 <span className="nav-label">{item.label}</span>
-                {item.badge ? (
-                  <span className="count">{item.badge}</span>
-                ) : null}
+                {badge > 0 ? <span className="count">{badge}</span> : null}
               </Link>
             </div>
           );
@@ -130,11 +146,11 @@ export default function Sidebar({
 
       <div className="sidebar-footer">
         <Link href="/settings/profile" className="user">
-          <span className="avatar">{authUser?.initials ?? "JA"}</span>
+          <Avatar url={authUser?.avatarUrl} initials={authUser?.initials ?? "JA"} />
           <div className="user-info">
             <div className="user-name">{authUser?.name ?? "John Anderson"}</div>
             <div className="user-role">
-              {authUser?.role ?? "Senior Developer"}
+              {myRole ? ORG_ROLE_LABEL[myRole] : "Senior Developer"}
             </div>
           </div>
         </Link>

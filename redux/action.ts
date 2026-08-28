@@ -6,6 +6,11 @@ import type { TasksAction } from "./tasks/action";
 import type { ActivityAction } from "./activity/action";
 import type { NotificationsAction } from "./notifications/action";
 import type { AnalyticsAction } from "./analytics/action";
+import type { MessagesAction } from "./messages/action";
+import type { ApiKeysAction } from "./apiKeys/action";
+import type { WebhooksAction } from "./webhooks/action";
+import type { IntegrationsAction } from "./integrations/action";
+import type { BillingAction } from "./billing/action";
 
 export type AppAction =
   | AuthAction
@@ -15,4 +20,9 @@ export type AppAction =
   | TasksAction
   | ActivityAction
   | NotificationsAction
-  | AnalyticsAction;
+  | AnalyticsAction
+  | MessagesAction
+  | ApiKeysAction
+  | WebhooksAction
+  | IntegrationsAction
+  | BillingAction;

@@ -1,13 +1,17 @@
 "use client";
 
 import { notFound } from "next/navigation";
+import Avatar from "@/components/common/Avatar";
 import { useProjectBySlug } from "@/lib/hooks/use-project-by-slug";
 import { useProjectTasks } from "@/lib/hooks/use-project-tasks";
+import { ORG_ROLE_LABEL } from "@/lib/status";
+import { useAppSelector } from "@/redux/hooks";
 import ProjectHeaderCard from "./ProjectHeaderCard";
 
 export default function ProjectDetailsPage({ slug }: { slug: string }) {
   const { project, loading } = useProjectBySlug(slug);
   const { tasks } = useProjectTasks(project?.id);
+  const orgMembers = useAppSelector((state) => state.organization.members);
 
   if (loading && !project) return null;
   if (!project) notFound();
@@ -47,15 +51,18 @@ export default function ProjectDetailsPage({ slug }: { slug: string }) {
             <span className="card-title">Team</span>
           </div>
           <div className="panel-body">
-            {project.team.map((member) => (
-              <div key={member.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                <span className="avatar">{member.initials}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 650 }}>{member.name}</div>
-                  <div className="tiny muted">{member.role}</div>
+            {project.team.map((member) => {
+              const orgRole = orgMembers.find((m) => m.userId === member.id)?.role;
+              return (
+                <div key={member.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                  <Avatar url={member.avatarUrl} initials={member.initials} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 650 }}>{member.name}</div>
+                    <div className="tiny muted">{orgRole ? ORG_ROLE_LABEL[orgRole] : "—"}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
         <div className="card">

@@ -4,6 +4,7 @@ export interface AuthUser {
   email: string;
   role: string;
   initials: string;
+  avatarUrl: string | null;
 }
 
 export interface AuthState {
@@ -16,6 +17,8 @@ export interface AuthState {
   // "confirmed logged out" without touching `loading` (that stays scoped
   // to the login/register button state).
   initialized: boolean;
+  avatarUploading: boolean;
+  avatarError: string | null;
 }
 
 export interface LoginCredentials {
@@ -30,4 +33,11 @@ export interface RegisterInput {
   name: string;
   email: string;
   password: string;
+}
+
+export interface RegisterViaInvitationInput {
+  token: string;
+  name: string;
+  password: string;
+  confirmPassword: string;
 }

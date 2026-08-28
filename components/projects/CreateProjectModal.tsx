@@ -33,7 +33,7 @@ const DEFAULT_VALUES: CreateProjectFormFields = {
 export default function CreateProjectModal() {
   const dispatch = useAppDispatch();
   const { isCreateModalOpen, creating, createError, list } = useAppSelector((state) => state.projects);
-  const usersState = useAppSelector((state) => state.users);
+  const organizationState = useAppSelector((state) => state.organization);
   const router = useAppRouter();
   const message = useMessage();
   const [attempted, setAttempted] = useState(false);
@@ -153,8 +153,8 @@ export default function CreateProjectModal() {
                 {...field}
                 mode="multiple"
                 placeholder="Assign team members"
-                loading={usersState.loading}
-                options={usersState.list.map((u) => ({ value: u.id, label: u.name }))}
+                loading={organizationState.membersLoading}
+                options={organizationState.members.map((m) => ({ value: m.user.id, label: m.user.name }))}
               />
             )}
           />

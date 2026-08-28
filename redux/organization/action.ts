@@ -1,5 +1,11 @@
 import type { UnknownAction } from "redux";
-import type { CreateOrganizationInput, InviteEntry, UpdateOrganizationInput } from "@/lib/api/organizations";
+import type {
+  CreateOrganizationInput,
+  InviteEntry,
+  MembersPage,
+  OrganizationWithAccess,
+  UpdateOrganizationInput,
+} from "@/lib/api/organizations";
 import type { Organization, OrganizationMember } from "@/types/organization";
 import {
   CREATE_INVITATIONS_FAILURE,
@@ -8,6 +14,9 @@ import {
   CREATE_ORGANIZATION_FAILURE,
   CREATE_ORGANIZATION_REQUEST,
   CREATE_ORGANIZATION_SUCCESS,
+  FETCH_MEMBER_DIRECTORY_FAILURE,
+  FETCH_MEMBER_DIRECTORY_REQUEST,
+  FETCH_MEMBER_DIRECTORY_SUCCESS,
   FETCH_MEMBERS_FAILURE,
   FETCH_MEMBERS_REQUEST,
   FETCH_MEMBERS_SUCCESS,
@@ -15,21 +24,27 @@ import {
   FETCH_ORGANIZATION_NOT_FOUND,
   FETCH_ORGANIZATION_REQUEST,
   FETCH_ORGANIZATION_SUCCESS,
+  REMOVE_LOGO_FAILURE,
+  REMOVE_LOGO_REQUEST,
+  REMOVE_LOGO_SUCCESS,
   UPDATE_MEMBER_ROLE_FAILURE,
   UPDATE_MEMBER_ROLE_REQUEST,
   UPDATE_MEMBER_ROLE_SUCCESS,
   UPDATE_ORGANIZATION_FAILURE,
   UPDATE_ORGANIZATION_REQUEST,
   UPDATE_ORGANIZATION_SUCCESS,
+  UPLOAD_LOGO_FAILURE,
+  UPLOAD_LOGO_REQUEST,
+  UPLOAD_LOGO_SUCCESS,
 } from "./actionType";
-import type { UpdateMemberRolePayload } from "./type";
+import type { FetchMemberDirectoryPayload, UpdateMemberRolePayload } from "./type";
 
 export interface FetchOrganizationRequestAction extends UnknownAction {
   type: typeof FETCH_ORGANIZATION_REQUEST;
 }
 export interface FetchOrganizationSuccessAction extends UnknownAction {
   type: typeof FETCH_ORGANIZATION_SUCCESS;
-  payload: Organization;
+  payload: OrganizationWithAccess;
 }
 export interface FetchOrganizationFailureAction extends UnknownAction {
   type: typeof FETCH_ORGANIZATION_FAILURE;
@@ -77,6 +92,19 @@ export interface FetchMembersFailureAction extends UnknownAction {
   payload: string;
 }
 
+export interface FetchMemberDirectoryRequestAction extends UnknownAction {
+  type: typeof FETCH_MEMBER_DIRECTORY_REQUEST;
+  payload: FetchMemberDirectoryPayload;
+}
+export interface FetchMemberDirectorySuccessAction extends UnknownAction {
+  type: typeof FETCH_MEMBER_DIRECTORY_SUCCESS;
+  payload: MembersPage;
+}
+export interface FetchMemberDirectoryFailureAction extends UnknownAction {
+  type: typeof FETCH_MEMBER_DIRECTORY_FAILURE;
+  payload: string;
+}
+
 export interface UpdateMemberRoleRequestAction extends UnknownAction {
   type: typeof UPDATE_MEMBER_ROLE_REQUEST;
   payload: UpdateMemberRolePayload;
@@ -102,6 +130,31 @@ export interface CreateInvitationsFailureAction extends UnknownAction {
   payload: string;
 }
 
+export interface UploadLogoRequestAction extends UnknownAction {
+  type: typeof UPLOAD_LOGO_REQUEST;
+  payload: File;
+}
+export interface UploadLogoSuccessAction extends UnknownAction {
+  type: typeof UPLOAD_LOGO_SUCCESS;
+  payload: Organization;
+}
+export interface UploadLogoFailureAction extends UnknownAction {
+  type: typeof UPLOAD_LOGO_FAILURE;
+  payload: string;
+}
+
+export interface RemoveLogoRequestAction extends UnknownAction {
+  type: typeof REMOVE_LOGO_REQUEST;
+}
+export interface RemoveLogoSuccessAction extends UnknownAction {
+  type: typeof REMOVE_LOGO_SUCCESS;
+  payload: Organization;
+}
+export interface RemoveLogoFailureAction extends UnknownAction {
+  type: typeof REMOVE_LOGO_FAILURE;
+  payload: string;
+}
+
 export type OrganizationAction =
   | FetchOrganizationRequestAction
   | FetchOrganizationSuccessAction
@@ -116,15 +169,24 @@ export type OrganizationAction =
   | FetchMembersRequestAction
   | FetchMembersSuccessAction
   | FetchMembersFailureAction
+  | FetchMemberDirectoryRequestAction
+  | FetchMemberDirectorySuccessAction
+  | FetchMemberDirectoryFailureAction
   | UpdateMemberRoleRequestAction
   | UpdateMemberRoleSuccessAction
   | UpdateMemberRoleFailureAction
   | CreateInvitationsRequestAction
   | CreateInvitationsSuccessAction
-  | CreateInvitationsFailureAction;
+  | CreateInvitationsFailureAction
+  | UploadLogoRequestAction
+  | UploadLogoSuccessAction
+  | UploadLogoFailureAction
+  | RemoveLogoRequestAction
+  | RemoveLogoSuccessAction
+  | RemoveLogoFailureAction;
 
 export const fetchOrganizationRequest = (): FetchOrganizationRequestAction => ({ type: FETCH_ORGANIZATION_REQUEST });
-export const fetchOrganizationSuccess = (payload: Organization): FetchOrganizationSuccessAction => ({
+export const fetchOrganizationSuccess = (payload: OrganizationWithAccess): FetchOrganizationSuccessAction => ({
   type: FETCH_ORGANIZATION_SUCCESS,
   payload,
 });
@@ -172,6 +234,21 @@ export const fetchMembersFailure = (payload: string): FetchMembersFailureAction 
   payload,
 });
 
+export const fetchMemberDirectoryRequest = (
+  payload: FetchMemberDirectoryPayload,
+): FetchMemberDirectoryRequestAction => ({
+  type: FETCH_MEMBER_DIRECTORY_REQUEST,
+  payload,
+});
+export const fetchMemberDirectorySuccess = (payload: MembersPage): FetchMemberDirectorySuccessAction => ({
+  type: FETCH_MEMBER_DIRECTORY_SUCCESS,
+  payload,
+});
+export const fetchMemberDirectoryFailure = (payload: string): FetchMemberDirectoryFailureAction => ({
+  type: FETCH_MEMBER_DIRECTORY_FAILURE,
+  payload,
+});
+
 export const updateMemberRoleRequest = (payload: UpdateMemberRolePayload): UpdateMemberRoleRequestAction => ({
   type: UPDATE_MEMBER_ROLE_REQUEST,
   payload,
@@ -194,5 +271,28 @@ export const createInvitationsSuccess = (): CreateInvitationsSuccessAction => ({
 });
 export const createInvitationsFailure = (payload: string): CreateInvitationsFailureAction => ({
   type: CREATE_INVITATIONS_FAILURE,
+  payload,
+});
+
+export const uploadLogoRequest = (payload: File): UploadLogoRequestAction => ({
+  type: UPLOAD_LOGO_REQUEST,
+  payload,
+});
+export const uploadLogoSuccess = (payload: Organization): UploadLogoSuccessAction => ({
+  type: UPLOAD_LOGO_SUCCESS,
+  payload,
+});
+export const uploadLogoFailure = (payload: string): UploadLogoFailureAction => ({
+  type: UPLOAD_LOGO_FAILURE,
+  payload,
+});
+
+export const removeLogoRequest = (): RemoveLogoRequestAction => ({ type: REMOVE_LOGO_REQUEST });
+export const removeLogoSuccess = (payload: Organization): RemoveLogoSuccessAction => ({
+  type: REMOVE_LOGO_SUCCESS,
+  payload,
+});
+export const removeLogoFailure = (payload: string): RemoveLogoFailureAction => ({
+  type: REMOVE_LOGO_FAILURE,
   payload,
 });

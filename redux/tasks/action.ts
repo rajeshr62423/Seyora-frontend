@@ -8,21 +8,25 @@ import {
   ADD_SUBTASK_REQUEST,
   ADD_SUBTASK_SUCCESS,
   CLOSE_CREATE_TASK_MODAL,
-  CLOSE_TASK,
   CREATE_TASK_FAILURE,
   CREATE_TASK_REQUEST,
   CREATE_TASK_SUCCESS,
   DELETE_SUBTASK_FAILURE,
   DELETE_SUBTASK_REQUEST,
   DELETE_SUBTASK_SUCCESS,
+  DELETE_TASK_FAILURE,
+  DELETE_TASK_REQUEST,
+  DELETE_TASK_SUCCESS,
   FETCH_MY_TASKS_FAILURE,
   FETCH_MY_TASKS_REQUEST,
   FETCH_MY_TASKS_SUCCESS,
   FETCH_PROJECT_TASKS_FAILURE,
   FETCH_PROJECT_TASKS_REQUEST,
   FETCH_PROJECT_TASKS_SUCCESS,
+  FETCH_TASK_BY_CODE_FAILURE,
+  FETCH_TASK_BY_CODE_REQUEST,
+  FETCH_TASK_BY_CODE_SUCCESS,
   OPEN_CREATE_TASK_MODAL,
-  OPEN_TASK,
   UPDATE_SUBTASK_FAILURE,
   UPDATE_SUBTASK_REQUEST,
   UPDATE_SUBTASK_SUCCESS,
@@ -142,12 +146,30 @@ export interface AddCommentFailureAction extends UnknownAction {
   payload: string;
 }
 
-export interface OpenTaskAction extends UnknownAction {
-  type: typeof OPEN_TASK;
+export interface FetchTaskByCodeRequestAction extends UnknownAction {
+  type: typeof FETCH_TASK_BY_CODE_REQUEST;
   payload: string;
 }
-export interface CloseTaskAction extends UnknownAction {
-  type: typeof CLOSE_TASK;
+export interface FetchTaskByCodeSuccessAction extends UnknownAction {
+  type: typeof FETCH_TASK_BY_CODE_SUCCESS;
+  payload: Task;
+}
+export interface FetchTaskByCodeFailureAction extends UnknownAction {
+  type: typeof FETCH_TASK_BY_CODE_FAILURE;
+  payload: { code: string; message: string };
+}
+
+export interface DeleteTaskRequestAction extends UnknownAction {
+  type: typeof DELETE_TASK_REQUEST;
+  payload: { id: string };
+}
+export interface DeleteTaskSuccessAction extends UnknownAction {
+  type: typeof DELETE_TASK_SUCCESS;
+  payload: { id: string };
+}
+export interface DeleteTaskFailureAction extends UnknownAction {
+  type: typeof DELETE_TASK_FAILURE;
+  payload: string;
 }
 
 export interface OpenCreateTaskModalAction extends UnknownAction {
@@ -183,8 +205,12 @@ export type TasksAction =
   | AddCommentRequestAction
   | AddCommentSuccessAction
   | AddCommentFailureAction
-  | OpenTaskAction
-  | CloseTaskAction
+  | FetchTaskByCodeRequestAction
+  | FetchTaskByCodeSuccessAction
+  | FetchTaskByCodeFailureAction
+  | DeleteTaskRequestAction
+  | DeleteTaskSuccessAction
+  | DeleteTaskFailureAction
   | OpenCreateTaskModalAction
   | CloseCreateTaskModalAction;
 
@@ -289,8 +315,31 @@ export const addCommentFailure = (payload: string): AddCommentFailureAction => (
   payload,
 });
 
-export const openTask = (taskId: string): OpenTaskAction => ({ type: OPEN_TASK, payload: taskId });
-export const closeTask = (): CloseTaskAction => ({ type: CLOSE_TASK });
+export const fetchTaskByCodeRequest = (payload: string): FetchTaskByCodeRequestAction => ({
+  type: FETCH_TASK_BY_CODE_REQUEST,
+  payload,
+});
+export const fetchTaskByCodeSuccess = (payload: Task): FetchTaskByCodeSuccessAction => ({
+  type: FETCH_TASK_BY_CODE_SUCCESS,
+  payload,
+});
+export const fetchTaskByCodeFailure = (code: string, message: string): FetchTaskByCodeFailureAction => ({
+  type: FETCH_TASK_BY_CODE_FAILURE,
+  payload: { code, message },
+});
+
+export const deleteTaskRequest = (id: string): DeleteTaskRequestAction => ({
+  type: DELETE_TASK_REQUEST,
+  payload: { id },
+});
+export const deleteTaskSuccess = (id: string): DeleteTaskSuccessAction => ({
+  type: DELETE_TASK_SUCCESS,
+  payload: { id },
+});
+export const deleteTaskFailure = (payload: string): DeleteTaskFailureAction => ({
+  type: DELETE_TASK_FAILURE,
+  payload,
+});
 
 export const openCreateTaskModal = (
   payload: { projectId?: string; status?: TaskStatus } = {},

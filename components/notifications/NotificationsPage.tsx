@@ -2,11 +2,12 @@
 
 import { Activity, Bell, Check, GitBranch, MessageSquare, Settings } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
 import { formatRelativeTime } from "@/lib/format";
 import { markAllReadRequest, markReadRequest } from "@/redux/notifications/action";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import type { NotificationCategory } from "@/types/notification";
+import type { NotificationCategory, NotificationEntry } from "@/types/notification";
 
 const TABS: { label: string; value: NotificationCategory | "all" }[] = [
   { label: "All", value: "all" },
@@ -27,9 +28,19 @@ const ICON_FOR: Record<NotificationCategory, typeof Bell> = {
 
 export default function NotificationsPage() {
   const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const message = useMessage();
   const { list: items, loading, markingReadIds, markingAllRead } = useAppSelector((state) => state.notifications);
   const [activeTab, setActiveTab] = useState<NotificationCategory | "all">("all");
+
+  // Only "task" links exist today (task-assignment notifications), but this
+  // stays generic so a future targetType just needs a case added here.
+  const openNotification = (n: NotificationEntry) => {
+    if (n.unread) dispatch(markReadRequest(n.id));
+    if (n.targetType === "task" && n.targetRef) {
+      router.push(`/tasks/${n.targetRef}`);
+    }
+  };
 
   const filtered = useMemo(
     () => (activeTab === "all" ? items : items.filter((n) => n.category === activeTab)),
@@ -92,8 +103,14 @@ export default function NotificationsPage() {
               filtered.map((n) => {
                 const Icon = ICON_FOR[n.category];
                 const isMarking = markingReadIds.includes(n.id);
+                const hasLink = n.targetType === "task" && !!n.targetRef;
                 return (
-                  <div key={n.id} className={`notification-row ${n.unread ? "unread" : ""}`}>
+                  <div
+                    key={n.id}
+                    className={`notification-row ${n.unread ? "unread" : ""}`}
+                    style={hasLink ? { cursor: "pointer" } : undefined}
+                    onClick={hasLink ? () => openNotification(n) : undefined}
+                  >
                     <div className="notification-avatar">
                       <Icon size={16} />
                     </div>
@@ -112,7 +129,10 @@ export default function NotificationsPage() {
                         className="icon-btn"
                         style={{ width: 28, height: 28 }}
                         disabled={!n.unread || isMarking}
-                        onClick={() => dispatch(markReadRequest(n.id))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dispatch(markReadRequest(n.id));
+                        }}
                       >
                         <Check size={14} />
                       </button>

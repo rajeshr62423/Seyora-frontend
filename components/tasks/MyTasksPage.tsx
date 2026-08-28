@@ -3,8 +3,9 @@
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
 import { formatDisplayDate } from "@/lib/format";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { TASK_PRIORITY_BADGE_CLASS } from "@/lib/status";
-import { openCreateTaskModal, openTask } from "@/redux/tasks/action";
+import { openCreateTaskModal } from "@/redux/tasks/action";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import type { Task } from "@/types/task";
 
@@ -25,6 +26,7 @@ function TaskRow({ task, onClick }: { task: Task; onClick: () => void }) {
 
 export default function MyTasksPage() {
   const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const { myTasks, myTasksLoading } = useAppSelector((state) => state.tasks);
 
   const buckets = useMemo(() => {
@@ -85,7 +87,7 @@ export default function MyTasksPage() {
             </div>
           ) : (
             [...buckets.today, ...buckets.overdue].map((t) => (
-              <TaskRow key={t.id} task={t} onClick={() => dispatch(openTask(t.id))} />
+              <TaskRow key={t.id} task={t} onClick={() => router.push(`/tasks/${t.code}`)} />
             ))
           )}
         </div>
@@ -94,7 +96,7 @@ export default function MyTasksPage() {
             <span className="card-title">Upcoming</span>
           </div>
           {buckets.upcoming.map((t) => (
-            <TaskRow key={t.id} task={t} onClick={() => dispatch(openTask(t.id))} />
+            <TaskRow key={t.id} task={t} onClick={() => router.push(`/tasks/${t.code}`)} />
           ))}
         </div>
       </div>

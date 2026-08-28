@@ -7,11 +7,12 @@ export interface Organization {
   projectPrefix: string;
   timezone: string;
   taskCounter: number;
+  logoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export type OrgRole = "OWNER" | "ADMIN" | "MANAGER" | "MEMBER";
+export type OrgRole = "OWNER" | "ADMIN" | "MANAGER" | "MEMBER" | "VIEWER";
 
 // Deliberately NOT flattened with `user` — member.role (permission level)
 // and member.user.role (free-text job title) share a field name on two

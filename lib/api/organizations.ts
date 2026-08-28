@@ -9,8 +9,19 @@ interface ApiOrganization {
   projectPrefix: string;
   timezone: string;
   taskCounter: number;
+  logoUrl: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// GET /organizations/me additionally returns the caller's own role and the
+// full set of permissions that role grants — used by the frontend only for
+// UI visibility (hiding buttons/nav the user can't act on); the backend
+// enforces every actual permission check itself, this is never trusted as
+// the source of authorization.
+interface ApiOrganizationWithAccess extends ApiOrganization {
+  role: OrgRole;
+  permissions: string[];
 }
 
 interface ApiOrganizationMember {
@@ -20,6 +31,33 @@ interface ApiOrganizationMember {
   role: OrgRole;
   createdAt: string;
   user: ApiUser;
+}
+
+interface ApiMembersPage {
+  items: ApiOrganizationMember[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ListMembersParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
+
+export interface MembersPage {
+  items: OrganizationMember[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface OrganizationWithAccess extends Organization {
+  role: OrgRole;
+  permissions: string[];
 }
 
 export interface CreateOrganizationInput {
@@ -47,6 +85,7 @@ function normalizeOrganization(org: ApiOrganization): Organization {
     projectPrefix: org.projectPrefix,
     timezone: org.timezone,
     taskCounter: org.taskCounter,
+    logoUrl: org.logoUrl,
     createdAt: org.createdAt.slice(0, 10),
     updatedAt: org.updatedAt.slice(0, 10),
   };
@@ -68,9 +107,13 @@ export async function createOrganization(input: CreateOrganizationInput): Promis
   return normalizeOrganization(org);
 }
 
-export async function getMyOrganization(): Promise<Organization> {
-  const org = await apiFetch<ApiOrganization>("/organizations/me", { method: "GET" });
-  return normalizeOrganization(org);
+export async function getMyOrganization(): Promise<OrganizationWithAccess> {
+  const org = await apiFetch<ApiOrganizationWithAccess>("/organizations/me", { method: "GET" });
+  return {
+    ...normalizeOrganization(org),
+    role: org.role,
+    permissions: org.permissions,
+  };
 }
 
 export async function updateMyOrganization(input: UpdateOrganizationInput): Promise<Organization> {
@@ -78,9 +121,35 @@ export async function updateMyOrganization(input: UpdateOrganizationInput): Prom
   return normalizeOrganization(org);
 }
 
-export async function listMembers(): Promise<OrganizationMember[]> {
-  const members = await apiFetch<ApiOrganizationMember[]>("/organizations/me/members", { method: "GET" });
-  return members.map(normalizeMember);
+export async function uploadLogo(file: File): Promise<Organization> {
+  const form = new FormData();
+  form.append("file", file);
+  const org = await apiFetch<ApiOrganization>("/organizations/me/logo", { method: "POST", body: form });
+  return normalizeOrganization(org);
+}
+
+export async function removeLogo(): Promise<Organization> {
+  const org = await apiFetch<ApiOrganization>("/organizations/me/logo", { method: "DELETE" });
+  return normalizeOrganization(org);
+}
+
+export async function listMembers(params: ListMembersParams = {}): Promise<MembersPage> {
+  const query = new URLSearchParams();
+  if (params.page !== undefined) query.set("page", String(params.page));
+  if (params.pageSize !== undefined) query.set("pageSize", String(params.pageSize));
+  if (params.search) query.set("search", params.search);
+  const qs = query.toString();
+
+  const result = await apiFetch<ApiMembersPage>(`/organizations/me/members${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+  });
+  return {
+    items: result.items.map(normalizeMember),
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
+  };
 }
 
 export async function updateMemberRole(userId: string, role: OrgRole): Promise<OrganizationMember> {

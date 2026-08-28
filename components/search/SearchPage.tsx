@@ -3,11 +3,13 @@
 import { Search } from "lucide-react";
 import { useState } from "react";
 import { useAppSelector } from "@/redux/hooks";
+import Avatar from "@/components/common/Avatar";
 import ProjectCard from "@/components/projects/ProjectCard";
+import { ORG_ROLE_LABEL } from "@/lib/status";
 
 export default function SearchPage() {
   const projects = useAppSelector((state) => state.projects.list);
-  const users = useAppSelector((state) => state.users.list);
+  const members = useAppSelector((state) => state.organization.members);
   const [query, setQuery] = useState("");
 
   const q = query.trim().toLowerCase();
@@ -16,8 +18,8 @@ export default function SearchPage() {
         `${p.name} ${p.description}`.toLowerCase().includes(q),
       )
     : [];
-  const matchedUsers = q
-    ? users.filter((u) => `${u.name} ${u.role}`.toLowerCase().includes(q))
+  const matchedMembers = q
+    ? members.filter((m) => `${m.user.name} ${ORG_ROLE_LABEL[m.role]}`.toLowerCase().includes(q))
     : [];
 
   return (
@@ -50,7 +52,7 @@ export default function SearchPage() {
               Use the command palette with Ctrl/⌘ K from anywhere.
             </div>
           </div>
-        ) : matchedProjects.length === 0 && matchedUsers.length === 0 ? (
+        ) : matchedProjects.length === 0 && matchedMembers.length === 0 ? (
           <div className="empty">
             <strong>No results found</strong>
           </div>
@@ -68,19 +70,19 @@ export default function SearchPage() {
                 </div>
               </div>
             ) : null}
-            {matchedUsers.length > 0 ? (
+            {matchedMembers.length > 0 ? (
               <div style={{ marginTop: 20 }}>
                 <div className="tiny muted" style={{ marginBottom: 8 }}>
                   Members
                 </div>
-                {matchedUsers.map((u) => (
-                  <div key={u.id} className="list-row">
-                    <span className="avatar">{u.initials}</span>
+                {matchedMembers.map((m) => (
+                  <div key={m.user.id} className="list-row">
+                    <Avatar url={m.user.avatarUrl} initials={m.user.initials} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: 650 }}>
-                        {u.name}
+                        {m.user.name}
                       </div>
-                      <div className="tiny muted">{u.role}</div>
+                      <div className="tiny muted">{ORG_ROLE_LABEL[m.role]}</div>
                     </div>
                   </div>
                 ))}

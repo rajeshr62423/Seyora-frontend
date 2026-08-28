@@ -1,8 +1,13 @@
 "use client";
 
 import { GitPullRequest } from "lucide-react";
+import { useEffect } from "react";
 import { users } from "@/lib/data/users";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
+import { useConfirm } from "@/lib/hooks/use-confirm";
 import { useMessage } from "@/lib/hooks/use-message";
+import { disconnectIntegrationRequest, fetchIntegrationsRequest } from "@/redux/integrations/action";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 const COMMITS = [
   "feat: add project analytics",
@@ -18,7 +23,39 @@ const PULL_REQUESTS: [string, "In Review" | "In Progress"][] = [
 ];
 
 export default function GitHubPage() {
+  const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const message = useMessage();
+  const confirm = useConfirm();
+  const { list, disconnectingProviders } = useAppSelector((state) => state.integrations);
+  const github = list.find((i) => i.provider === "github");
+
+  useEffect(() => {
+    dispatch(fetchIntegrationsRequest());
+  }, [dispatch]);
+
+  // The commits/PRs below are still fully fabricated (no real OAuth/API
+  // wiring — out of scope, see PLANNING.md), but connection status itself
+  // is real; if it's genuinely disconnected, don't pretend otherwise.
+  useEffect(() => {
+    if (list.length > 0 && github?.status !== "connected") {
+      router.push("/integrations");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list, github?.status]);
+
+  const handleDisconnect = () => {
+    confirm({
+      title: "Disconnect GitHub?",
+      content: "Repository activity, pull requests and deployment signals will stop syncing.",
+      okText: "Disconnect",
+      onConfirm: () => {
+        dispatch(disconnectIntegrationRequest("github"));
+        message.success("GitHub connection removed");
+        router.push("/integrations");
+      },
+    });
+  };
 
   return (
     <div className="page">
@@ -32,7 +69,8 @@ export default function GitHubPage() {
         <button
           type="button"
           className="btn danger"
-          onClick={() => message.error("GitHub connection removed")}
+          disabled={disconnectingProviders.includes("github")}
+          onClick={handleDisconnect}
         >
           Disconnect
         </button>
@@ -47,7 +85,7 @@ export default function GitHubPage() {
           >
             Connected
           </div>
-          <div className="trend">Acme organization</div>
+          <div className="trend">{github?.label || "GitHub"}</div>
         </div>
         <div className="card kpi">
           <span className="kpi-label">Repository</span>

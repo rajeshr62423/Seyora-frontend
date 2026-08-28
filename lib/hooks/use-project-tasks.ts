@@ -8,7 +8,8 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 // Overview tabs on the same project would fire four avoidable requests.
 export function useProjectTasks(projectId: string | undefined) {
   const dispatch = useAppDispatch();
-  const { projectTasks, projectTasksProjectId, projectTasksLoading } = useAppSelector((state) => state.tasks);
+  const { projectTasks, projectTasksProjectId, projectTasksLoading } =
+    useAppSelector((state) => state.tasks);
 
   const stale = projectId !== undefined && projectTasksProjectId !== projectId;
 
@@ -16,7 +17,6 @@ export function useProjectTasks(projectId: string | undefined) {
     if (projectId && stale) {
       dispatch(fetchProjectTasksRequest(projectId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, stale]);
 
   return {

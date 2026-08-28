@@ -5,13 +5,16 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { selectUser } from "@/redux/users/action";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import Avatar from "@/components/common/Avatar";
 import ProjectStatus from "@/components/projects/ProjectStatus";
+import { ORG_ROLE_LABEL } from "@/lib/status";
 
 export default function UserDetailsPage({ userId }: { userId: string }) {
   const dispatch = useAppDispatch();
-  const { list: users, loading } = useAppSelector((state) => state.users);
+  const { members, membersLoading: loading } = useAppSelector((state) => state.organization);
   const projects = useAppSelector((state) => state.projects.list);
-  const user = users.find((u) => u.id === userId);
+  const member = members.find((m) => m.userId === userId);
+  const user = member?.user;
 
   useEffect(() => {
     dispatch(selectUser(userId));
@@ -20,7 +23,7 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
     };
   }, [dispatch, userId]);
 
-  if (!loading && users.length && !user) notFound();
+  if (!loading && members.length && !user) notFound();
 
   const memberProjects = user ? projects.filter((p) => p.team.some((m) => m.id === user.id)) : [];
 
@@ -35,13 +38,11 @@ export default function UserDetailsPage({ userId }: { userId: string }) {
         </div>
         {user ? (
           <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-            <span className="avatar" style={{ width: 56, height: 56, fontSize: 18 }}>
-              {user.initials}
-            </span>
+            <Avatar url={user.avatarUrl} initials={user.initials} style={{ width: 56, height: 56, fontSize: 18 }} />
             <div>
               <div style={{ fontSize: 22, fontWeight: 760 }}>{user.name}</div>
               <div className="muted small" style={{ marginTop: 4 }}>
-                {user.role} · {user.email}
+                {member ? ORG_ROLE_LABEL[member.role] : "—"} · {user.email}
               </div>
             </div>
           </div>

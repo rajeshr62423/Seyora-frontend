@@ -6,14 +6,15 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import CreateProjectModal from "@/components/projects/CreateProjectModal";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
-import TaskDetailModal from "@/components/tasks/TaskDetailModal";
+import CreateChannelModal from "@/components/messages/CreateChannelModal";
+import EditChannelModal from "@/components/messages/EditChannelModal";
 import { useAppRouter } from "@/lib/hooks/use-app-router";
-import { fetchUsersRequest } from "@/redux/users/action";
 import { fetchProjectsRequest } from "@/redux/projects/action";
 import { fetchMembersRequest, fetchOrganizationRequest } from "@/redux/organization/action";
-import { closeTask, fetchMyTasksRequest } from "@/redux/tasks/action";
+import { fetchMyTasksRequest } from "@/redux/tasks/action";
 import { fetchActivityRequest } from "@/redux/activity/action";
 import { fetchNotificationsRequest } from "@/redux/notifications/action";
+import { fetchChannelsRequest } from "@/redux/messages/action";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import CommandPalette from "./CommandPalette";
 import Header from "./Header";
@@ -33,7 +34,11 @@ const SETTINGS_TAB_LABEL: Record<string, string> = {
   "danger-zone": "Danger Zone",
 };
 
-function getBreadcrumb(pathname: string, resolveProjectName: (slug: string) => string | undefined): string {
+function getBreadcrumb(
+  pathname: string,
+  resolveProjectName: (slug: string) => string | undefined,
+  resolveTaskTitle: (code: string) => string | undefined,
+): string {
   const segments = pathname.split("/").filter(Boolean);
   if (segments[0] === "projects") {
     if (!segments[1]) return "Projects";
@@ -43,7 +48,10 @@ function getBreadcrumb(pathname: string, resolveProjectName: (slug: string) => s
   }
   if (segments[0] === "users") return segments[1] ? "Team Member" : "Team";
   if (segments[0] === "settings") return SETTINGS_TAB_LABEL[segments[1] ?? ""] ?? "Settings";
-  if (segments[0] === "tasks") return "My Tasks";
+  if (segments[0] === "tasks") {
+    if (!segments[1]) return "My Tasks";
+    return resolveTaskTitle(segments[1]) ?? segments[1];
+  }
   if (segments[0] === "calendar") return "Calendar";
   if (segments[0] === "analytics") return "Analytics";
   if (segments[0] === "activity") return "Activity";
@@ -68,6 +76,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const router = useAppRouter();
   const dispatch = useAppDispatch();
   const projects = useAppSelector((state) => state.projects.list);
+  const taskDetail = useAppSelector((state) => state.tasks.taskDetail);
   const { isAuthenticated, initialized } = useAppSelector((state) => state.auth);
   const organization = useAppSelector((state) => state.organization);
   const [collapsed, setCollapsed] = useState(false);
@@ -75,17 +84,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const [commandOpen, setCommandOpen] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchUsersRequest());
     dispatch(fetchOrganizationRequest());
     // GET /notifications has no organization scoping at all server-side
-    // (just recipientId) — fired here unconditionally, alongside users,
-    // rather than gated on the org existing below.
+    // (just recipientId) — fired here unconditionally, rather than gated
+    // on the org existing below.
     dispatch(fetchNotificationsRequest());
-    // Bootstraps the users + organization + notifications slices exactly
-    // once when the shell mounts. Auth session restoration is handled
-    // globally by AuthBootstrap instead. Projects/members/tasks/activity
-    // are fetched separately below, once the organization is confirmed to
-    // exist (those endpoints 404 otherwise — see the org-existence guard).
+    // Bootstraps the organization + notifications slices exactly once when
+    // the shell mounts. Auth session restoration is handled globally by
+    // AuthBootstrap instead. Projects/members/tasks/activity are fetched
+    // separately below, once the organization is confirmed to exist (those
+    // endpoints 404 otherwise — see the org-existence guard).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -96,6 +104,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     dispatch(fetchMembersRequest());
     dispatch(fetchMyTasksRequest());
     dispatch(fetchActivityRequest());
+    dispatch(fetchChannelsRequest());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId]);
 
@@ -141,17 +150,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
     setMobileNavOpen(false);
   }
 
-  // Close any open task modal on route change — it looks its task up by id
-  // in `projectTasks`, which gets overwritten wholesale by the next
-  // project's fetch on navigation. Dispatching to the Redux store (as
-  // opposed to `setMobileNavOpen` above, local to this component) belongs
-  // in an effect, not the render body, since it can synchronously notify
-  // other subscribed components mid-render.
-  useEffect(() => {
-    dispatch(closeTask());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
-
   // Lock page scroll behind the mobile drawer while it's open, and always
   // restore it — both on close and on unmount — so it can never get stuck.
   useEffect(() => {
@@ -163,7 +161,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
     };
   }, [mobileNavOpen]);
 
-  const breadcrumb = getBreadcrumb(pathname, (slug) => projects.find((p) => p.slug === slug)?.name);
+  const breadcrumb = getBreadcrumb(
+    pathname,
+    (slug) => projects.find((p) => p.slug === slug)?.name,
+    (code) => (taskDetail?.code === code ? taskDetail.title : undefined),
+  );
 
   // Nothing to render yet: either the session check hasn't resolved, the
   // redirect above is already on its way to /login, the organization fetch
@@ -208,8 +210,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <CreateProjectModal />
       <CreateTaskModal />
+      <CreateChannelModal />
+      <EditChannelModal />
       <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
-      <TaskDetailModal />
     </div>
   );
 }

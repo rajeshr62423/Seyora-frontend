@@ -3,14 +3,13 @@
 import { notFound } from "next/navigation";
 import { useMemo } from "react";
 import CalendarGrid from "@/components/calendar/CalendarGrid";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useProjectBySlug } from "@/lib/hooks/use-project-by-slug";
 import { useProjectTasks } from "@/lib/hooks/use-project-tasks";
-import { openTask } from "@/redux/tasks/action";
-import { useAppDispatch } from "@/redux/hooks";
 import ProjectHeaderCard from "./ProjectHeaderCard";
 
 export default function ProjectCalendarPage({ slug }: { slug: string }) {
-  const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const { project, loading: projectLoading } = useProjectBySlug(slug);
   const { tasks } = useProjectTasks(project?.id);
 
@@ -20,8 +19,8 @@ export default function ProjectCalendarPage({ slug }: { slug: string }) {
     () =>
       tasks
         .filter((t) => t.dueDate !== null)
-        .map((t) => ({ id: t.id, label: t.title, date: t.dueDate!, onClick: () => dispatch(openTask(t.id)) })),
-    [tasks, dispatch],
+        .map((t) => ({ id: t.id, label: t.title, date: t.dueDate!, onClick: () => router.push(`/tasks/${t.code}`) })),
+    [tasks, router],
   );
 
   if (projectLoading && !project) return null;

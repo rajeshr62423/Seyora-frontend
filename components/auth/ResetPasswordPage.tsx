@@ -1,7 +1,10 @@
 "use client";
 
 import { Form, Input } from "antd";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { resetPasswordRequest } from "@/lib/api/auth";
 import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useMessage } from "@/lib/hooks/use-message";
 import AuthLayout from "./AuthLayout";
@@ -12,8 +15,10 @@ interface ResetFormValues {
 }
 
 export default function ResetPasswordPage() {
+  const token = useSearchParams().get("token");
   const router = useAppRouter();
   const message = useMessage();
+  const [submitting, setSubmitting] = useState(false);
   const {
     control,
     handleSubmit,
@@ -24,10 +29,43 @@ export default function ResetPasswordPage() {
   const password = watch("password");
   const strength = Math.min(100, password.length * 12);
 
-  const onSubmit = () => {
-    message.success("You can now sign in");
-    router.push("/login");
+  const onSubmit = async (values: ResetFormValues) => {
+    if (!token) return;
+    setSubmitting(true);
+    try {
+      await resetPasswordRequest({ token, password: values.password, confirmPassword: values.confirmPassword });
+      message.success("You can now sign in with your new password");
+      router.push("/login");
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "Unable to reset your password. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (!token) {
+    return (
+      <AuthLayout
+        heroTitle="Engineering work, without the busywork."
+        heroDescription="Plan projects, ship features, collaborate with your team and connect engineering signals in one focused workspace."
+      >
+        <h2 className="auth-title">This link isn&rsquo;t valid</h2>
+        <div className="auth-sub">
+          This password reset link is missing its token. Request a new one to continue.
+        </div>
+        <button
+          type="button"
+          className="btn primary"
+          style={{ width: "100%", justifyContent: "center", marginTop: 12 }}
+          onClick={() => router.push("/forgot-password")}
+        >
+          Request a new link
+        </button>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout
@@ -42,7 +80,7 @@ export default function ResetPasswordPage() {
             name="password"
             control={control}
             rules={{ required: "Password is required", minLength: { value: 8, message: "At least 8 characters" } }}
-            render={({ field }) => <Input.Password {...field} placeholder="New password" />}
+            render={({ field }) => <Input.Password {...field} placeholder="New password" autoComplete="new-password" />}
           />
         </Form.Item>
         {password ? (
@@ -64,11 +102,18 @@ export default function ResetPasswordPage() {
             name="confirmPassword"
             control={control}
             rules={{ required: "Confirm your password", validate: (v) => v === password || "Passwords do not match" }}
-            render={({ field }) => <Input.Password {...field} placeholder="Confirm password" />}
+            render={({ field }) => (
+              <Input.Password {...field} placeholder="Confirm password" autoComplete="new-password" />
+            )}
           />
         </Form.Item>
-        <button type="submit" className="btn primary" style={{ width: "100%", justifyContent: "center" }}>
-          Reset password
+        <button
+          type="submit"
+          className="btn primary"
+          style={{ width: "100%", justifyContent: "center" }}
+          disabled={submitting}
+        >
+          {submitting ? "Resetting…" : "Reset password"}
         </button>
       </Form>
     </AuthLayout>

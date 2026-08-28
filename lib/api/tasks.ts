@@ -115,6 +115,15 @@ export async function getMyTasks(): Promise<Task[]> {
   return tasks.map(normalizeTask);
 }
 
+export async function getTaskByCode(code: string): Promise<Task> {
+  const task = await apiFetch<ApiTask>(`/tasks/by-code/${encodeURIComponent(code)}`, { method: "GET" });
+  return normalizeTask(task);
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await apiFetch(`/tasks/${id}`, { method: "DELETE" });
+}
+
 export async function updateTask(id: string, input: UpdateTaskInput): Promise<Task> {
   const task = await apiFetch<ApiTask>(`/tasks/${id}`, { method: "PATCH", body: input });
   return normalizeTask(task);

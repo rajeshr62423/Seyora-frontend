@@ -1,15 +1,18 @@
-import { call, put, takeEvery, takeLatest } from "redux-saga/effects";
+import { call, put, select, takeEvery, takeLatest } from "redux-saga/effects";
 import {
   addComment as addCommentApi,
   addSubtask as addSubtaskApi,
   createTask as createTaskApi,
   deleteSubtask as deleteSubtaskApi,
+  deleteTask as deleteTaskApi,
   getMyTasks as getMyTasksApi,
+  getTaskByCode as getTaskByCodeApi,
   listTasksForProject as listTasksForProjectApi,
   updateSubtask as updateSubtaskApi,
   updateTask as updateTaskApi,
 } from "@/lib/api/tasks";
 import type { Comment, Subtask, Task } from "@/types/task";
+import type { RootState } from "../rootReducer";
 import {
   addCommentFailure,
   addCommentSuccess,
@@ -19,10 +22,15 @@ import {
   createTaskSuccess,
   deleteSubtaskFailure,
   deleteSubtaskSuccess,
+  deleteTaskFailure,
+  deleteTaskSuccess,
   fetchMyTasksFailure,
+  fetchMyTasksRequest,
   fetchMyTasksSuccess,
   fetchProjectTasksFailure,
   fetchProjectTasksSuccess,
+  fetchTaskByCodeFailure,
+  fetchTaskByCodeSuccess,
   updateSubtaskFailure,
   updateSubtaskSuccess,
   updateTaskFailure,
@@ -31,7 +39,9 @@ import {
   type AddSubtaskRequestAction,
   type CreateTaskRequestAction,
   type DeleteSubtaskRequestAction,
+  type DeleteTaskRequestAction,
   type FetchProjectTasksRequestAction,
+  type FetchTaskByCodeRequestAction,
   type UpdateSubtaskRequestAction,
   type UpdateTaskRequestAction,
 } from "./action";
@@ -40,8 +50,10 @@ import {
   ADD_SUBTASK_REQUEST,
   CREATE_TASK_REQUEST,
   DELETE_SUBTASK_REQUEST,
+  DELETE_TASK_REQUEST,
   FETCH_MY_TASKS_REQUEST,
   FETCH_PROJECT_TASKS_REQUEST,
+  FETCH_TASK_BY_CODE_REQUEST,
   UPDATE_SUBTASK_REQUEST,
   UPDATE_TASK_REQUEST,
 } from "./actionType";
@@ -76,6 +88,19 @@ function* handleCreateTask(action: CreateTaskRequestAction) {
       dueDate: values.dueDate,
     });
     yield put(createTaskSuccess(task));
+
+    // CREATE_TASK_SUCCESS's reducer only patches `projectTasks` (it can
+    // compare the new task's projectId against the board currently in
+    // view) — it can't tell whether the task belongs in `myTasks` without
+    // knowing the current user, which lives in a different slice. Rather
+    // than thread that through the reducer, refetch here when it matters:
+    // otherwise a task created via the modal from MyTasksPage (no project
+    // preset, no board to patch into) and assigned to yourself would only
+    // appear after a manual refresh.
+    const currentUserId: string | undefined = yield select((state: RootState) => state.auth.user?.id);
+    if (task.assigneeId && task.assigneeId === currentUserId) {
+      yield put(fetchMyTasksRequest());
+    }
   } catch (error) {
     yield put(createTaskFailure(error instanceof Error ? error.message : "Unable to create task"));
   }
@@ -138,6 +163,27 @@ function* handleAddComment(action: AddCommentRequestAction) {
   }
 }
 
+function* handleFetchTaskByCode(action: FetchTaskByCodeRequestAction) {
+  try {
+    const task: Task = yield call(getTaskByCodeApi, action.payload);
+    yield put(fetchTaskByCodeSuccess(task));
+  } catch (error) {
+    yield put(
+      fetchTaskByCodeFailure(action.payload, error instanceof Error ? error.message : "Unable to load task"),
+    );
+  }
+}
+
+function* handleDeleteTask(action: DeleteTaskRequestAction) {
+  try {
+    const { id } = action.payload;
+    yield call(deleteTaskApi, id);
+    yield put(deleteTaskSuccess(id));
+  } catch (error) {
+    yield put(deleteTaskFailure(error instanceof Error ? error.message : "Unable to delete task"));
+  }
+}
+
 export function* tasksSaga() {
   yield takeLatest(FETCH_PROJECT_TASKS_REQUEST, handleFetchProjectTasks);
   yield takeLatest(FETCH_MY_TASKS_REQUEST, handleFetchMyTasks);
@@ -147,4 +193,6 @@ export function* tasksSaga() {
   yield takeEvery(UPDATE_SUBTASK_REQUEST, handleUpdateSubtask);
   yield takeEvery(DELETE_SUBTASK_REQUEST, handleDeleteSubtask);
   yield takeEvery(ADD_COMMENT_REQUEST, handleAddComment);
+  yield takeLatest(FETCH_TASK_BY_CODE_REQUEST, handleFetchTaskByCode);
+  yield takeLatest(DELETE_TASK_REQUEST, handleDeleteTask);
 }

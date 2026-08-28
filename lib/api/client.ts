@@ -27,9 +27,14 @@ interface RefreshTokensResponse {
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { body, skipAuth, skipRefresh, headers, ...rest } = options;
 
+  // FormData (file uploads) must NOT be JSON.stringify'd, and must NOT get
+  // an explicit Content-Type — the browser sets multipart/form-data with
+  // the correct boundary itself only when the header is left unset.
+  const isFormData = body instanceof FormData;
+
   const doFetch = () => {
     const finalHeaders: Record<string, string> = {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(headers as Record<string, string> | undefined),
     };
     if (!skipAuth) {
@@ -39,7 +44,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     return fetch(`${API_BASE_URL}${path}`, {
       ...rest,
       headers: finalHeaders,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
   };
 

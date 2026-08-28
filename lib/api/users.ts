@@ -7,6 +7,7 @@ export interface ApiUser {
   name: string;
   email: string;
   role: string;
+  avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +27,7 @@ export function normalizeUser(user: ApiUser): User {
     email: user.email,
     role: user.role,
     initials: getInitials(user.name),
+    avatarUrl: user.avatarUrl,
   };
 }
 
@@ -42,5 +44,17 @@ export async function getUser(id: string): Promise<User> {
 
 export async function updateMe(input: UpdateMeInput): Promise<User> {
   const user = await apiFetch<ApiUser>("/users/me", { method: "PATCH", body: input });
+  return normalizeUser(user);
+}
+
+export async function uploadAvatar(file: File): Promise<User> {
+  const form = new FormData();
+  form.append("file", file);
+  const user = await apiFetch<ApiUser>("/users/me/avatar", { method: "POST", body: form });
+  return normalizeUser(user);
+}
+
+export async function removeAvatar(): Promise<User> {
+  const user = await apiFetch<ApiUser>("/users/me/avatar", { method: "DELETE" });
   return normalizeUser(user);
 }

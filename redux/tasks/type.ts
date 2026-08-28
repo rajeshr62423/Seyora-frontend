@@ -28,7 +28,17 @@ export interface TasksState {
   commentSending: boolean;
   commentError: string | null;
 
-  selectedTaskId: string | null;
+  // Single task fetched by its human-readable code (/tasks/DEV-1) — a
+  // dedicated slot rather than reusing projectTasks/myTasks, since the
+  // task-detail page must work on a hard refresh with neither of those
+  // lists populated yet (see lib/hooks/use-task-by-code.ts).
+  taskDetail: Task | null;
+  taskDetailCode: string | null;
+  taskDetailLoading: boolean;
+  taskDetailError: string | null;
+
+  deletingTask: boolean;
+  deleteTaskError: string | null;
 }
 
 export interface CreateTaskPayload {

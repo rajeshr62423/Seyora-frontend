@@ -14,6 +14,8 @@ interface ApiNotification {
   category: ApiNotificationCategory;
   unread: boolean;
   createdAt: string;
+  targetType: string | null;
+  targetRef: string | null;
 }
 
 const CATEGORY_MAP: Record<ApiNotificationCategory, NotificationCategory> = {
@@ -35,6 +37,8 @@ function normalizeNotification(notification: ApiNotification): NotificationEntry
     category: CATEGORY_MAP[notification.category],
     unread: notification.unread,
     createdAt: notification.createdAt,
+    targetType: notification.targetType,
+    targetRef: notification.targetRef,
   };
 }
 

@@ -1,16 +1,16 @@
 "use client";
 
 import { notFound } from "next/navigation";
+import Avatar from "@/components/common/Avatar";
 import { formatDisplayDate } from "@/lib/format";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
 import { useProjectBySlug } from "@/lib/hooks/use-project-by-slug";
 import { useProjectTasks } from "@/lib/hooks/use-project-tasks";
 import { TASK_PRIORITY_BADGE_CLASS, TASK_STATUS_BADGE_CLASS, TASK_STATUS_LABEL } from "@/lib/status";
-import { openTask } from "@/redux/tasks/action";
-import { useAppDispatch } from "@/redux/hooks";
 import ProjectHeaderCard from "./ProjectHeaderCard";
 
 export default function ProjectTasksPage({ slug }: { slug: string }) {
-  const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const { project, loading: projectLoading } = useProjectBySlug(slug);
   const { tasks, loading: tasksLoading } = useProjectTasks(project?.id);
 
@@ -40,7 +40,7 @@ export default function ProjectTasksPage({ slug }: { slug: string }) {
             <tbody>
               {tasksLoading && tasks.length === 0 ? null : (
                 tasks.map((task) => (
-                  <tr key={task.id} onClick={() => dispatch(openTask(task.id))} style={{ cursor: "pointer" }}>
+                  <tr key={task.id} onClick={() => router.push(`/tasks/${task.code}`)} style={{ cursor: "pointer" }}>
                     <td>
                       <span className="tiny muted" style={{ marginRight: 7 }}>
                         {task.code}
@@ -58,9 +58,7 @@ export default function ProjectTasksPage({ slug }: { slug: string }) {
                     </td>
                     <td>
                       <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span className="avatar" style={{ width: 22, height: 22, fontSize: 9 }}>
-                          {task.assignee?.initials ?? "—"}
-                        </span>
+                        <Avatar url={task.assignee?.avatarUrl} initials={task.assignee?.initials ?? "—"} style={{ width: 22, height: 22, fontSize: 9 }} />
                         {task.assignee?.name ?? "Unassigned"}
                       </span>
                     </td>

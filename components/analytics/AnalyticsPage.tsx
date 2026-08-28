@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import Avatar from "@/components/common/Avatar";
 import BarChart from "@/components/charts/BarChart";
 import Donut from "@/components/charts/Donut";
 import type { AnalyticsRange } from "@/lib/api/analytics";
@@ -155,7 +156,7 @@ export default function AnalyticsPage() {
                   <tr key={m.userId}>
                     <td>
                       <span style={{ display: "flex", gap: 7, alignItems: "center" }}>
-                        <span className="avatar">{m.initials}</span>
+                        <Avatar url={m.avatarUrl} initials={m.initials} />
                         {m.name}
                       </span>
                     </td>

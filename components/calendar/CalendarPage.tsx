@@ -2,19 +2,19 @@
 
 import { useMemo } from "react";
 import CalendarGrid from "@/components/calendar/CalendarGrid";
-import { openTask } from "@/redux/tasks/action";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppRouter } from "@/lib/hooks/use-app-router";
+import { useAppSelector } from "@/redux/hooks";
 
 export default function CalendarPage() {
-  const dispatch = useAppDispatch();
+  const router = useAppRouter();
   const myTasks = useAppSelector((state) => state.tasks.myTasks);
 
   const chips = useMemo(
     () =>
       myTasks
         .filter((t) => t.dueDate !== null)
-        .map((t) => ({ id: t.id, label: t.title, date: t.dueDate!, onClick: () => dispatch(openTask(t.id)) })),
-    [myTasks, dispatch],
+        .map((t) => ({ id: t.id, label: t.title, date: t.dueDate!, onClick: () => router.push(`/tasks/${t.code}`) })),
+    [myTasks, router],
   );
 
   return (

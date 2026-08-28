@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ComponentType } from "react";
+import { useAppSelector } from "@/redux/hooks";
 import AccountTab from "./tabs/AccountTab";
 import ApiTab from "./tabs/ApiTab";
 import AuditLogsTab from "./tabs/AuditLogsTab";
@@ -29,7 +32,29 @@ const TAB_CONTENT: Record<string, ComponentType> = {
 };
 
 export default function SettingsShell({ activeTab }: { activeTab: string }) {
+  const { myPermissions, current } = useAppSelector((state) => state.organization);
+  // Before the organization fetch resolves, myPermissions is empty for
+  // every role (including a real owner) — enforcing the gate against that
+  // transient empty state would 404 an owner on a hard refresh. Wait for
+  // `current` (populated by the same fetch) before treating "missing
+  // permission" as real.
+  const permissionsLoaded = current !== null;
+  const visibleTabs = SETTINGS_TABS.filter(
+    (tab) => !tab.permission || !permissionsLoaded || myPermissions.includes(tab.permission),
+  );
+
   if (!isSettingsSlug(activeTab)) notFound();
+  // Blocks direct navigation to a gated tab's URL, not just hiding it from
+  // the nav list above — a Member typing /settings/danger-zone shouldn't
+  // see it just because the link itself is hidden.
+  const activeTabDef = SETTINGS_TABS.find((tab) => tab.slug === activeTab);
+  if (
+    activeTabDef?.permission &&
+    permissionsLoaded &&
+    !myPermissions.includes(activeTabDef.permission)
+  ) {
+    notFound();
+  }
 
   const Content = TAB_CONTENT[activeTab];
 
@@ -43,7 +68,7 @@ export default function SettingsShell({ activeTab }: { activeTab: string }) {
       </div>
       <div className="settings">
         <nav className="settings-nav">
-          {SETTINGS_TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <Link
